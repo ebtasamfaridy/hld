@@ -434,7 +434,7 @@ table.tbl td code { background: var(--bg3); padding: 1px 6px; border-radius: 3px
 <div id="page-home" class="article active">
   <div class="home-hero">
     <h1>System Design<br/><span>Detailed Study Guide</span></h1>
-    <p>Long-form, end-to-end articles for 25 famous system design problems. Each problem is a complete deep-dive — requirements, capacity math, data model, APIs, architecture, component-level deep dives, failure modes, and expected interview cross-questions with full reasoning.</p>
+    <p>Long-form, end-to-end articles for 31 famous system design problems. Each problem is a complete deep-dive — requirements, capacity math, data model, APIs, architecture, component-level deep dives, failure modes, and expected interview cross-questions with full reasoning.</p>
   </div>
 
   <h2 style="border-bottom:none;padding-bottom:0;margin-top:0"><span class="h-num">📋</span>How to Use This Guide</h2>
@@ -443,9 +443,9 @@ table.tbl td code { background: var(--bg3); padding: 1px 6px; border-radius: 3px
   <div class="callout tip">
     <div class="callout-title">📖 Reading Order Recommendation</div>
     <p><strong>First-time:</strong> Interview Framework → Core Fundamentals → Cheat Sheet → Cross-Question Patterns. These four pages form your mental toolkit before touching any problem.</p>
-    <p><strong>Beginner path:</strong> URL Shortener (P1) → Rate Limiter (P6) → Notification System (P8) → Distributed Cache (P9). Foundational patterns and clean trade-offs.</p>
-    <p><strong>Intermediate path:</strong> Twitter (P2), Instagram (P13), WhatsApp (P3), YouTube (P4), Uber (P5). Fan-out, real-time, and media patterns.</p>
-    <p><strong>Advanced path:</strong> Google Docs (P19), Payment Gateway (P21), UPI (P23), Job Scheduler (P16), Stock Broker (P17), Shazam (P12). Combine multiple advanced patterns.</p>
+    <p><strong>Beginner path:</strong> URL Shortener (P1) → Rate Limiter (P6) → Notification System (P8) → Distributed Cache (P9) → Pastebin (P18). Foundational patterns and clean trade-offs.</p>
+    <p><strong>Intermediate path:</strong> Twitter (P2), Instagram (P13), WhatsApp (P3), YouTube (P4), Uber (P5), Yelp (P30), Web Crawler (P28). Fan-out, real-time, geo, and media patterns.</p>
+    <p><strong>Advanced path:</strong> Google Docs (P19), Payment Gateway (P21), UPI (P23), Job Scheduler (P16), Stock Broker (P17), Shazam (P12), Ad Click Aggregator (P29), Metrics Monitoring (P31), Dropbox (P27). Combine multiple advanced patterns.</p>
   </div>
 
   <h2><span class="h-num">📚</span>Quick Index</h2>
@@ -476,6 +476,11 @@ table.tbl td code { background: var(--bg3); padding: 1px 6px; border-radius: 3px
     <a class="card-item" onclick="goto('p24')"><div class="ci-num">24</div><h3>Payment System</h3><p>Double-entry ledger, suspense</p></a>
     <a class="card-item" onclick="goto('p25')"><div class="ci-num">25</div><h3>Malicious URL</h3><p>Bloom filter, ML, layered checks</p></a>
     <a class="card-item" onclick="goto('p26')"><div class="ci-num">26</div><h3>OTT Platform (Netflix)</h3><p>DRM, multi-CDN, recommendations, watch sync</p></a>
+    <a class="card-item" onclick="goto('p27')"><div class="ci-num">27</div><h3>Dropbox / File Sync</h3><p>Chunking, dedup, conflict resolution, sync protocol</p></a>
+    <a class="card-item" onclick="goto('p28')"><div class="ci-num">28</div><h3>Web Crawler</h3><p>BFS frontier, politeness, SimHash, traps</p></a>
+    <a class="card-item" onclick="goto('p29')"><div class="ci-num">29</div><h3>Ad Click Aggregator</h3><p>Kafka + Flink + ClickHouse, exactly-once</p></a>
+    <a class="card-item" onclick="goto('p30')"><div class="ci-num">30</div><h3>Yelp / Geo-Search</h3><p>ES geo_point, filters, ranking, photos</p></a>
+    <a class="card-item" onclick="goto('p31')"><div class="ci-num">31</div><h3>Metrics Monitoring</h3><p>Time-series, Gorilla compression, PromQL, alerts</p></a>
   </div>
 
   <h2><span class="h-num">🎯</span>What Makes This Different</h2>
