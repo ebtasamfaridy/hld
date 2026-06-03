@@ -11,7 +11,8 @@
 <style>
   :root {
     --bg: #0d1117; --bg2: #161b22; --border: #30363d;
-    --blue: #58a6ff; --green: #3fb950; --text: #e6edf3; --text2: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --purple: #d2a8ff;
+    --text: #e6edf3; --text2: #8b949e;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -55,6 +56,11 @@
     background: rgba(63,185,80,0.12);
     color: var(--green); border-color: rgba(63,185,80,0.25);
   }
+  .card.purple-card:hover { border-color: var(--purple); }
+  .card.purple-card .badge {
+    background: rgba(210,168,255,0.12);
+    color: var(--purple); border-color: rgba(210,168,255,0.25);
+  }
   .footer { margin-top: 32px; font-size: 12px; color: var(--text2); }
 </style>
 </head>
@@ -66,16 +72,23 @@
 <div class="cards">
   <a class="card" href="study-guide-detailed.html">
     <span class="icon">📚</span>
-    <h2>Detailed Study Guide</h2>
+    <h2>HLD — Detailed Study Guide</h2>
     <div class="desc">Long-form, end-to-end articles for 31 problems plus Fundamentals, Cheat Sheet, Interview Framework and Cross-Question Patterns. Each problem covers context, requirements with reasoning, capacity math, data model, APIs, architecture, deep dives, failure modes, scaling path and pushback answers. Built for thorough study, not interview-time skimming.</div>
     <span class="badge">Laptop · Long-Form Reading</span>
   </a>
 
   <a class="card green-card" href="interview-quick-ref.html">
     <span class="icon">📱</span>
-    <h2>Interview Quick Reference</h2>
+    <h2>HLD — Interview Quick Reference</h2>
     <div class="desc">A condensed, open-book subset of the Detailed Study Guide. Concise flow diagrams, key decisions and pushback answers for every problem. No horizontal scroll. Built for your phone screen during the interview.</div>
     <span class="badge">Mobile · Interview Mode</span>
+  </a>
+
+  <a class="card purple-card" href="lld-guide.html">
+    <span class="icon">💻</span>
+    <h2>LLD — Mastery Guide</h2>
+    <div class="desc">Staff-engineer-grade Low-Level Design and Machine-Coding curriculum. The Framework section teaches the reusable 12-step playbook (SOLID, design patterns, concurrency, API + DB design, UML, interview structure). 22 problems then apply it end-to-end — Food Delivery, Ride Booking, Splitwise, Parking Lot, Rate Limiter, Pub/Sub, LRU Cache, Logger, Feature Flags, Authorization, and more — each with full domain model, schema, APIs, UML, state machines, concurrency, and Java skeleton.</div>
+    <span class="badge">Object Design · Machine Coding</span>
   </a>
 </div>
 

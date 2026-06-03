@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Low-Level Design — Mastery Guide</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" href="data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E📚%3C/text%3E%3C/svg%3E"/>
+<link rel="apple-touch-icon" href="favicon.svg"/>
+<meta name="theme-color" content="#0d1117"/>
+<link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333; --bg4: #21262d;
+  --bd: #30363d; --bd2: #21262d;
+  --bl: #58a6ff; --gr: #3fb950; --or: #ffa657; --pu: #d2a8ff;
+  --rd: #f78166; --yl: #e3b341; --cy: #56d4dd;
+  --tx: #e6edf3; --t2: #8b949e; --t3: #c9d1d9;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--bg); color: var(--tx);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px; line-height: 1.7;
+}
+body { display: flex; min-height: 100vh; }
+
+/* SIDEBAR */
+#sidebar {
+  width: 290px; flex-shrink: 0;
+  background: var(--bg2); border-right: 1px solid var(--bd);
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; padding: 16px 0;
+}
+.sb-logo {
+  padding: 0 20px 16px; font-size: 16px; font-weight: 800; color: var(--pu);
+  border-bottom: 1px solid var(--bd); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sb-group { padding: 8px 0; border-bottom: 1px solid var(--bd2); }
+.sb-group-title {
+  padding: 8px 20px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--t2);
+}
+.sb-link {
+  display: block; padding: 8px 20px; font-size: 13px; color: var(--t3);
+  text-decoration: none; border-left: 3px solid transparent;
+  cursor: pointer; transition: all 0.15s;
+}
+.sb-link:hover { background: var(--bg3); color: var(--pu); }
+.sb-link.active {
+  background: var(--bg3); color: var(--pu);
+  border-left-color: var(--pu); font-weight: 600;
+}
+.sb-num { color: var(--t2); font-family: monospace; margin-right: 6px; }
+.sb-link.active .sb-num { color: var(--pu); }
+
+/* SEARCH */
+.sb-search { padding: 8px 14px; position: sticky; top: 0; background: var(--bg2); z-index: 5; border-bottom: 1px solid var(--bd2); }
+.sb-search-wrap { position: relative; }
+#sb-search-input {
+  width: 100%; padding: 8px 30px 8px 32px;
+  background: var(--bg); color: var(--tx);
+  border: 1px solid var(--bd); border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none; transition: border-color 0.15s;
+}
+#sb-search-input:focus { border-color: var(--pu); }
+.sb-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--t2); font-size: 13px; pointer-events: none; }
+.sb-search-kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--t2); font-size: 10px; font-family: monospace; padding: 2px 5px; background: var(--bg3); border-radius: 3px; border: 1px solid var(--bd); pointer-events: none; }
+.sb-link.hidden, .sb-group.hidden { display: none; }
+.sb-group-title.hidden-title { display: none; }
+
+/* MAIN CONTENT */
+#main { flex: 1; min-width: 0; }
+.article { max-width: 920px; margin: 0 auto; padding: 40px 48px 80px; }
+
+/* MARKDOWN STYLES */
+.md-body h1 { font-size: 32px; font-weight: 800; color: var(--tx); margin: 0 0 8px; padding-bottom: 12px; border-bottom: 1px solid var(--bd); }
+.md-body h2 { font-size: 22px; font-weight: 700; color: var(--tx); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--bd2); display: flex; align-items: center; gap: 10px; }
+.md-body h2::before { content: ''; display: inline-block; width: 4px; height: 22px; background: var(--pu); border-radius: 2px; }
+.md-body h3 { font-size: 17px; font-weight: 700; color: var(--bl); margin: 24px 0 10px; }
+.md-body h4 { font-size: 15px; font-weight: 700; color: var(--cy); margin: 18px 0 8px; }
+.md-body p { margin: 0 0 14px; color: var(--t3); }
+.md-body ul, .md-body ol { margin: 0 0 14px 24px; color: var(--t3); }
+.md-body li { margin: 6px 0; }
+.md-body li > ul, .md-body li > ol { margin-top: 6px; margin-bottom: 6px; }
+.md-body strong { color: var(--tx); font-weight: 700; }
+.md-body em { color: var(--or); font-style: italic; }
+.md-body a { color: var(--bl); text-decoration: none; border-bottom: 1px dashed rgba(88,166,255,0.4); }
+.md-body a:hover { border-bottom-style: solid; }
+.md-body hr { border: none; border-top: 1px solid var(--bd); margin: 32px 0; }
+.md-body blockquote {
+  border-left: 4px solid var(--pu);
+  background: var(--bg2);
+  padding: 12px 18px;
+  margin: 16px 0;
+  color: var(--t3);
+  border-radius: 0 6px 6px 0;
+}
+.md-body blockquote p:last-child { margin-bottom: 0; }
+.md-body code {
+  background: var(--bg3); color: var(--cy);
+  padding: 2px 6px; border-radius: 4px;
+  font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px;
+}
+.md-body pre {
+  background: #1a1f2c !important;
+  border: 1px solid var(--bd);
+  padding: 14px 18px !important;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 14px 0;
+  font-size: 13px; line-height: 1.55;
+}
+.md-body pre code { background: transparent; padding: 0; color: var(--tx); border-radius: 0; font-size: 13px; }
+.md-body table { border-collapse: collapse; margin: 14px 0; width: 100%; font-size: 14px; }
+.md-body table th, .md-body table td { padding: 9px 12px; text-align: left; border: 1px solid var(--bd); vertical-align: top; }
+.md-body table th { background: var(--bg3); color: var(--bl); font-weight: 700; }
+.md-body table tr:nth-child(even) td { background: rgba(33,38,45,0.4); }
+
+/* HOME / LANDING */
+.home-hero { padding: 30px 0 16px; }
+.home-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.15; margin-bottom: 14px; }
+.home-hero h1 span { color: var(--pu); }
+.home-hero p { font-size: 16px; color: var(--t3); max-width: 720px; }
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+.card-item {
+  display: block; padding: 14px; background: var(--bg2);
+  border: 1px solid var(--bd); border-radius: 8px;
+  cursor: pointer; transition: all 0.15s; text-decoration: none; color: var(--tx);
+}
+.card-item:hover { border-color: var(--pu); transform: translateY(-1px); }
+.card-item h3 { font-size: 14px; font-weight: 700; color: var(--pu); margin-bottom: 4px; }
+.card-item p { font-size: 12px; color: var(--t2); line-height: 1.45; }
+.ci-num { font-size: 11px; font-weight: 800; color: var(--t2); margin-bottom: 4px; font-family: monospace; }
+
+/* LOADING / STATES */
+.loader { padding: 60px 0; text-align: center; color: var(--t2); font-size: 14px; }
+.loader-spinner {
+  display: inline-block; width: 30px; height: 30px;
+  border: 3px solid var(--bd); border-top-color: var(--pu);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error { padding: 30px; color: var(--rd); background: var(--bg2); border-left: 4px solid var(--rd); border-radius: 4px; }
+
+/* SECTION ANCHOR */
+.md-section-anchor { padding-top: 14px; border-top: 1px dashed var(--bd2); margin-top: 30px; }
+.md-section-anchor:first-of-type { padding-top: 0; border-top: none; margin-top: 0; }
+
+/* TOC */
+.toc {
+  background: var(--bg2); border: 1px solid var(--bd);
+  padding: 16px 20px; border-radius: 8px;
+  margin: 18px 0 30px; font-size: 13px;
+}
+.toc-title { color: var(--pu); font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; }
+.toc ol { margin: 0; padding-left: 22px; }
+.toc li { margin: 4px 0; }
+.toc a { color: var(--t3); text-decoration: none; }
+.toc a:hover { color: var(--pu); }
+
+/* SKELETON CALLOUT */
+.skeleton-note {
+  margin: 16px 0; padding: 14px 18px;
+  background: rgba(63,185,80,0.07); border-left: 4px solid var(--gr);
+  border-radius: 0 6px 6px 0; font-size: 13px;
+}
+.skeleton-note strong { color: var(--gr); }
+
+/* MOBILE */
+#sb-toggle { display: none; }
+@media (max-width: 900px) {
+  body { display: block; }
+  #sidebar {
+    position: fixed; left: -290px; top: 0; width: 280px;
+    transition: left 0.2s; z-index: 100;
+  }
+  #sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
+  #sb-toggle {
+    display: block; position: fixed; top: 12px; left: 12px; z-index: 99;
+    background: var(--bg2); border: 1px solid var(--bd); color: var(--pu);
+    padding: 8px 14px; border-radius: 6px; font-size: 18px; cursor: pointer;
+  }
+  .article { padding: 60px 20px 80px; }
+  .md-body h1 { font-size: 26px; }
+  .home-hero h1 { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+<button id="sb-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+
+<div id="sidebar">
+  <div class="sb-logo">💻 LLD Mastery</div>
+
+  <div class="sb-search">
+    <div class="sb-search-wrap">
+      <input id="sb-search-input" type="search" placeholder="Search…" autocomplete="off" spellcheck="false"/>
+      <span class="sb-search-icon">🔍</span>
+      <span class="sb-search-kbd">⌘K</span>
+    </div>
+  </div>
+
+  <div class="sb-groups-wrap">
+    <div class="sb-group">
+      <div class="sb-group-title">Start</div>
+      <a class="sb-link active" data-page="home"><span class="sb-num">🏠</span>Home</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🎯 The LLD Framework</div>
+      <a class="sb-link" data-page="fw-01"><span class="sb-num">01</span>Requirements Gathering</a>
+      <a class="sb-link" data-page="fw-02"><span class="sb-num">02</span>Capacity Estimation</a>
+      <a class="sb-link" data-page="fw-03"><span class="sb-num">03</span>Structured LLD Framework</a>
+      <a class="sb-link" data-page="fw-04"><span class="sb-num">04</span>SOLID Principles</a>
+      <a class="sb-link" data-page="fw-05"><span class="sb-num">05</span>Design Patterns</a>
+      <a class="sb-link" data-page="fw-06"><span class="sb-num">06</span>Concurrency</a>
+      <a class="sb-link" data-page="fw-07"><span class="sb-num">07</span>API Design</a>
+      <a class="sb-link" data-page="fw-08"><span class="sb-num">08</span>Database Design</a>
+      <a class="sb-link" data-page="fw-09"><span class="sb-num">09</span>UML Tutorial</a>
+      <a class="sb-link" data-page="fw-10"><span class="sb-num">10</span>LLD Interview Framework</a>
+      <a class="sb-link" data-page="fw-11"><span class="sb-num">11</span>Machine Coding Framework</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🍔 Domain-Rich Systems</div>
+      <a class="sb-link" data-page="p01"><span class="sb-num">L01</span>Food Delivery</a>
+      <a class="sb-link" data-page="p02"><span class="sb-num">L02</span>Ride Booking</a>
+      <a class="sb-link" data-page="p03"><span class="sb-num">L03</span>Hotel Booking</a>
+      <a class="sb-link" data-page="p04"><span class="sb-num">L04</span>Library Management</a>
+      <a class="sb-link" data-page="p05"><span class="sb-num">L05</span>Splitwise</a>
+      <a class="sb-link" data-page="p06"><span class="sb-num">L06</span>Streak System</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🎲 Object-Modeling Systems</div>
+      <a class="sb-link" data-page="p07"><span class="sb-num">L07</span>Snake &amp; Ladder</a>
+      <a class="sb-link" data-page="p08"><span class="sb-num">L08</span>Tic Tac Toe</a>
+      <a class="sb-link" data-page="p09"><span class="sb-num">L09</span>Vending Machine</a>
+      <a class="sb-link" data-page="p10"><span class="sb-num">L10</span>Elevator</a>
+      <a class="sb-link" data-page="p11"><span class="sb-num">L11</span>Parking Lot</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🔧 Infra-Flavoured</div>
+      <a class="sb-link" data-page="p12"><span class="sb-num">L12</span>Rate Limiter</a>
+      <a class="sb-link" data-page="p13"><span class="sb-num">L13</span>BookMyShow</a>
+      <a class="sb-link" data-page="p14"><span class="sb-num">L14</span>Pub / Sub System</a>
+      <a class="sb-link" data-page="p15"><span class="sb-num">L15</span>LRU Cache</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🛠️ Framework / Library</div>
+      <a class="sb-link" data-page="p16"><span class="sb-num">L16</span>Logger Framework</a>
+      <a class="sb-link" data-page="p17"><span class="sb-num">L17</span>Feature Flag System</a>
+      <a class="sb-link" data-page="p18"><span class="sb-num">L18</span>Task Scheduler</a>
+      <a class="sb-link" data-page="p19"><span class="sb-num">L19</span>Circuit Breaker</a>
+      <a class="sb-link" data-page="p20"><span class="sb-num">L20</span>Authorization System</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">🛒 Marketplace / Commerce</div>
+      <a class="sb-link" data-page="p21"><span class="sb-num">L21</span>E-Commerce</a>
+      <a class="sb-link" data-page="p22"><span class="sb-num">L22</span>Car Rental</a>
+    </div>
+
+    <div class="sb-group">
+      <div class="sb-group-title">More</div>
+      <a class="sb-link" href="index.html" data-external="true"><span class="sb-num">←</span>Back to Home</a>
+      <a class="sb-link" href="study-guide-detailed.html" data-external="true"><span class="sb-num">📘</span>HLD Detailed Guide</a>
+      <a class="sb-link" href="interview-quick-ref.html" data-external="true"><span class="sb-num">📱</span>HLD Quick Reference</a>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="article" id="content"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" data-manual></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+
+<script>
+const FRAMEWORK_BASE = 'lld-content/00_End_To_End_LLD_Tutorial/';
+const FRAMEWORK_PAGES = {
+  'fw-01': { file: '01_requirement_gathering.md',   title: 'Requirements Gathering' },
+  'fw-02': { file: '02_capacity_estimation.md',     title: 'Capacity Estimation' },
+  'fw-03': { file: '03_structured_lld_framework.md',title: 'Structured LLD Framework' },
+  'fw-04': { file: '04_solid_principles.md',        title: 'SOLID Principles' },
+  'fw-05': { file: '05_design_patterns.md',         title: 'Design Patterns' },
+  'fw-06': { file: '06_concurrency.md',             title: 'Concurrency' },
+  'fw-07': { file: '07_api_design.md',              title: 'API Design' },
+  'fw-08': { file: '08_database_design.md',         title: 'Database Design' },
+  'fw-09': { file: '09_uml_tutorial.md',            title: 'UML Tutorial' },
+  'fw-10': { file: '10_lld_interview_framework.md', title: 'LLD Interview Framework' },
+  'fw-11': { file: '11_machine_coding_framework.md',title: 'Machine Coding Framework' },
+};
+
+const PROBLEMS = {
+  'p01': { folder: '01_Food_Delivery_System',           title: 'Food Delivery System' },
+  'p02': { folder: '02_Ride_Booking_System',            title: 'Ride Booking System' },
+  'p03': { folder: '03_Hotel_Booking_System',           title: 'Hotel Booking System' },
+  'p04': { folder: '04_Library_Management_System',      title: 'Library Management System' },
+  'p05': { folder: '05_Splitwise',                      title: 'Splitwise' },
+  'p06': { folder: '06_Streak_System',                  title: 'Streak System' },
+  'p07': { folder: '07_Snake_and_Ladder',               title: 'Snake & Ladder' },
+  'p08': { folder: '08_Tic_Tac_Toe',                    title: 'Tic Tac Toe' },
+  'p09': { folder: '09_Vending_Machine',                title: 'Vending Machine' },
+  'p10': { folder: '10_Elevator',                       title: 'Elevator' },
+  'p11': { folder: '11_Parking_Lot',                    title: 'Parking Lot' },
+  'p12': { folder: '12_Rate_Limit',                     title: 'Rate Limiter' },
+  'p13': { folder: '13_BookMyShow',                     title: 'BookMyShow' },
+  'p14': { folder: '14_Pub_Sub',                        title: 'Pub / Sub System' },
+  'p15': { folder: '15_LRU_Cache',                      title: 'LRU Cache' },
+  'p16': { folder: '16_Logger_Framework',               title: 'Logger Framework' },
+  'p17': { folder: '17_Feature_Flag_System',            title: 'Feature Flag System' },
+  'p18': { folder: '18_Task_Scheduler',                 title: 'Task Scheduler' },
+  'p19': { folder: '19_Circuit_Breaker',                title: 'Circuit Breaker' },
+  'p20': { folder: '20_Permission_Authorization_System',title: 'Permission & Authorization System' },
+  'p21': { folder: '21_ECommerce',                      title: 'E-Commerce' },
+  'p22': { folder: '22_Car_Rental',                     title: 'Car Rental' },
+};
+
+// In the order we'd present the problem deep-dive
+const PROBLEM_FILES = [
+  { file: 'README.md',                          section: 'Overview' },
+  { file: '00_simple_language_problem_statement.md', section: 'Problem Statement (Plain English)' },
+  { file: '01_requirements.md',                 section: 'Requirements' },
+  { file: '02_capacity_estimation.md',          section: 'Capacity Estimation' },
+  { file: '03_hld.md',                          section: 'High-Level Architecture' },
+  { file: '04_domain_model.md',                 section: 'Domain Model' },
+  { file: '05_database_design.md',              section: 'Database Design' },
+  { file: '06_api_design.md',                   section: 'API Design' },
+  { file: '07_class_diagrams.md',               section: 'Class Diagrams' },
+  { file: '08_sequence_diagrams.md',            section: 'Sequence Diagrams' },
+  { file: '09_state_machines.md',               section: 'State Machines' },
+  { file: '10_design_patterns.md',              section: 'Design Patterns' },
+  { file: '11_concurrency_and_scaling.md',      section: 'Concurrency & Scaling' },
+  { file: '13_extensions_and_tradeoffs.md',     section: 'Extensions & Trade-offs' },
+  { file: '14_interviewer_followups.md',        section: 'Interviewer Follow-ups' },
+];
+
+const CONTENT_EL = document.getElementById('content');
+const PAGE_CACHE = {};
+
+// Configure marked
+marked.setOptions({
+  breaks: false,
+  gfm: true,
+  mangle: false,
+  headerIds: false,
+});
+
+function showLoader(msg = 'Loading…') {
+  CONTENT_EL.innerHTML = '<div class="loader"><div class="loader-spinner"></div><div>' + msg + '</div></div>';
+}
+function showError(msg) {
+  CONTENT_EL.innerHTML = '<div class="error">' + msg + '</div>';
+}
+
+async function fetchMarkdown(path) {
+  try {
+    const r = await fetch(path);
+    if (!r.ok) return null;
+    return await r.text();
+  } catch (e) { return null; }
+}
+
+function renderHome() {
+  CONTENT_EL.innerHTML = `
+    <div class="home-hero">
+      <h1>Low-Level Design<br/><span>Mastery Guide</span></h1>
+      <p>A staff-engineer-grade curriculum for Low-Level Design and Machine-Coding interviews. The framework section teaches the reusable 12-step playbook (SOLID, design patterns, concurrency, API and DB design, UML, interview structure). The 22 problems apply it end-to-end — each one with requirements, capacity, HLD, domain model, schema, APIs, UML, state machines, patterns, concurrency, Java skeleton, extensions, and the staff-level follow-ups you'll be grilled on.</p>
+    </div>
+
+    <div class="md-body">
+      <h2>📋 How to Use This Guide</h2>
+      <p>Read the <strong>Framework</strong> section first (sidebar §🎯). It's the lens through which every problem is solved. Then pick problems by category:</p>
+      <ul>
+        <li><strong>Domain-rich</strong> (Food Delivery, Ride Booking, Hotel Booking, Library, Splitwise, Streak) — multi-actor workflows, state machines, geospatial, concurrency.</li>
+        <li><strong>Object-modeling</strong> (Snake &amp; Ladder, Tic Tac Toe, Vending Machine, Elevator, Parking Lot) — classic OO interview problems; clean inheritance and pluggable strategies.</li>
+        <li><strong>Infra-flavoured</strong> (Rate Limiter, BookMyShow, Pub/Sub, LRU Cache) — system primitives with subtle concurrency.</li>
+        <li><strong>Framework / library</strong> (Logger, Feature Flag, Task Scheduler, Circuit Breaker, Authorization) — building reusable, extensible libraries.</li>
+        <li><strong>Marketplace / commerce</strong> (E-Commerce, Car Rental) — order saga, inventory atomicity, multi-seller flows.</li>
+      </ul>
+
+      <h2>🎯 Framework — Read This First</h2>
+      <div class="cards-grid">
+        <a class="card-item" onclick="goto('fw-01')"><div class="ci-num">01</div><h3>Requirements Gathering</h3><p>FR / NFR / scope clarifications</p></a>
+        <a class="card-item" onclick="goto('fw-02')"><div class="ci-num">02</div><h3>Capacity Estimation</h3><p>DAU → RPS → storage → bandwidth</p></a>
+        <a class="card-item" onclick="goto('fw-03')"><div class="ci-num">03</div><h3>Structured LLD Framework</h3><p>The 12-step playbook</p></a>
+        <a class="card-item" onclick="goto('fw-04')"><div class="ci-num">04</div><h3>SOLID Principles</h3><p>SRP / OCP / LSP / ISP / DIP</p></a>
+        <a class="card-item" onclick="goto('fw-05')"><div class="ci-num">05</div><h3>Design Patterns</h3><p>Strategy, State, Factory, Observer…</p></a>
+        <a class="card-item" onclick="goto('fw-06')"><div class="ci-num">06</div><h3>Concurrency</h3><p>Races, idempotency, locks, sagas</p></a>
+        <a class="card-item" onclick="goto('fw-07')"><div class="ci-num">07</div><h3>API Design</h3><p>REST, idempotency, pagination</p></a>
+        <a class="card-item" onclick="goto('fw-08')"><div class="ci-num">08</div><h3>Database Design</h3><p>ER, indexes, sharding, migrations</p></a>
+        <a class="card-item" onclick="goto('fw-09')"><div class="ci-num">09</div><h3>UML Tutorial</h3><p>Class, sequence, state, package</p></a>
+        <a class="card-item" onclick="goto('fw-10')"><div class="ci-num">10</div><h3>LLD Interview Framework</h3><p>How to communicate in interviews</p></a>
+        <a class="card-item" onclick="goto('fw-11')"><div class="ci-num">11</div><h3>Machine Coding Framework</h3><p>Checklists &amp; reusable blueprint</p></a>
+      </div>
+
+      <h2>💻 22 Systems</h2>
+      <div class="cards-grid">
+        <a class="card-item" onclick="goto('p01')"><div class="ci-num">L01</div><h3>Food Delivery</h3><p>State machine, dispatch, geo, batching</p></a>
+        <a class="card-item" onclick="goto('p02')"><div class="ci-num">L02</div><h3>Ride Booking</h3><p>Matching, surge, ride lifecycle</p></a>
+        <a class="card-item" onclick="goto('p03')"><div class="ci-num">L03</div><h3>Hotel Booking</h3><p>Calendar inventory, pricing</p></a>
+        <a class="card-item" onclick="goto('p04')"><div class="ci-num">L04</div><h3>Library Management</h3><p>Book vs Copy, reservations</p></a>
+        <a class="card-item" onclick="goto('p05')"><div class="ci-num">L05</div><h3>Splitwise</h3><p>Expense split, debt simplification</p></a>
+        <a class="card-item" onclick="goto('p06')"><div class="ci-num">L06</div><h3>Streak System</h3><p>Engagement, timezone, freezes</p></a>
+        <a class="card-item" onclick="goto('p07')"><div class="ci-num">L07</div><h3>Snake &amp; Ladder</h3><p>Turn-based, pluggable rules</p></a>
+        <a class="card-item" onclick="goto('p08')"><div class="ci-num">L08</div><h3>Tic Tac Toe</h3><p>N×N board, K-in-row, minimax</p></a>
+        <a class="card-item" onclick="goto('p09')"><div class="ci-num">L09</div><h3>Vending Machine</h3><p>FSM, payment, change-making</p></a>
+        <a class="card-item" onclick="goto('p10')"><div class="ci-num">L10</div><h3>Elevator</h3><p>Multi-car scheduling, LOOK/SCAN</p></a>
+        <a class="card-item" onclick="goto('p11')"><div class="ci-num">L11</div><h3>Parking Lot</h3><p>Atomic spot allocation</p></a>
+        <a class="card-item" onclick="goto('p12')"><div class="ci-num">L12</div><h3>Rate Limiter</h3><p>Token bucket, sliding window</p></a>
+        <a class="card-item" onclick="goto('p13')"><div class="ci-num">L13</div><h3>BookMyShow</h3><p>Hold → Confirm → Pay; SETNX</p></a>
+        <a class="card-item" onclick="goto('p14')"><div class="ci-num">L14</div><h3>Pub / Sub</h3><p>Kafka-like; partitions, ISR</p></a>
+        <a class="card-item" onclick="goto('p15')"><div class="ci-num">L15</div><h3>LRU Cache</h3><p>HashMap+DLL, sharded, distributed</p></a>
+        <a class="card-item" onclick="goto('p16')"><div class="ci-num">L16</div><h3>Logger Framework</h3><p>Hierarchical, async, MDC, layouts</p></a>
+        <a class="card-item" onclick="goto('p17')"><div class="ci-num">L17</div><h3>Feature Flag System</h3><p>Sticky bucketing, push updates</p></a>
+        <a class="card-item" onclick="goto('p18')"><div class="ci-num">L18</div><h3>Task Scheduler</h3><p>SKIP LOCKED, retries, DLQ</p></a>
+        <a class="card-item" onclick="goto('p19')"><div class="ci-num">L19</div><h3>Circuit Breaker</h3><p>Sliding window, HALF_OPEN</p></a>
+        <a class="card-item" onclick="goto('p20')"><div class="ci-num">L20</div><h3>Authorization</h3><p>RBAC + ABAC + ReBAC; DENY-wins</p></a>
+        <a class="card-item" onclick="goto('p21')"><div class="ci-num">L21</div><h3>E-Commerce</h3><p>Multi-seller, order saga</p></a>
+        <a class="card-item" onclick="goto('p22')"><div class="ci-num">L22</div><h3>Car Rental</h3><p>Time-slot inventory, reserve flow</p></a>
+      </div>
+
+      <h2>🔑 What Makes This Different</h2>
+      <p>Most LLD resources show you "the code." This guide focuses on the <strong>why</strong>:</p>
+      <ul>
+        <li>Every problem starts with explicit requirements (FR / NFR / scope) — the same way a real interview starts.</li>
+        <li>Every design choice is justified by SOLID + concrete concurrency reasoning.</li>
+        <li>Each problem ends with <em>Interviewer Follow-ups</em> — the staff-level grilling questions and how to handle them.</li>
+        <li>Machine-coding skeletons are production-grade Java, not pseudocode.</li>
+      </ul>
+    </div>
+  `;
+}
+
+function makeToc(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const h2s = tmp.querySelectorAll('h2');
+  if (h2s.length < 3) return '';
+  let toc = '<div class="toc"><div class="toc-title">In this article</div><ol>';
+  h2s.forEach((h, i) => {
+    const id = 'sec-' + i;
+    h.id = id;
+    toc += `<li><a href="#${id}">${h.textContent}</a></li>`;
+  });
+  toc += '</ol></div>';
+  return { toc, html: tmp.innerHTML };
+}
+
+async function renderFrameworkPage(id) {
+  const meta = FRAMEWORK_PAGES[id];
+  if (!meta) return showError('Unknown page: ' + id);
+  showLoader('Loading ' + meta.title + '…');
+  if (PAGE_CACHE[id]) { CONTENT_EL.innerHTML = PAGE_CACHE[id]; postRender(); return; }
+  const md = await fetchMarkdown(FRAMEWORK_BASE + meta.file);
+  if (!md) return showError('Could not load <code>' + meta.file + '</code>');
+  let html = '<div class="md-body">' + marked.parse(md) + '</div>';
+  const tocBundle = makeToc('<div class="md-body">' + marked.parse(md) + '</div>');
+  if (tocBundle) html = '<div class="md-body">' + tocBundle.toc + tocBundle.html + '</div>';
+  PAGE_CACHE[id] = html;
+  CONTENT_EL.innerHTML = html;
+  postRender();
+}
+
+async function renderProblemPage(id) {
+  const meta = PROBLEMS[id];
+  if (!meta) return showError('Unknown problem: ' + id);
+  showLoader('Loading ' + meta.title + '…');
+  if (PAGE_CACHE[id]) { CONTENT_EL.innerHTML = PAGE_CACHE[id]; postRender(); return; }
+
+  const base = 'lld-content/' + meta.folder + '/';
+  // fetch all in parallel; null for 404
+  const results = await Promise.all(
+    PROBLEM_FILES.map(async ({ file, section }) => {
+      const md = await fetchMarkdown(base + file);
+      return md ? { section, md } : null;
+    })
+  );
+
+  // build TOC
+  const presentSections = results.filter(r => r !== null);
+  let toc = `<div class="toc"><div class="toc-title">In this problem</div><ol>`;
+  presentSections.forEach((r, i) => {
+    toc += `<li><a href="#sec-${i}">${r.section}</a></li>`;
+  });
+  // Add machine-coding skeleton link
+  toc += `<li><a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank">Machine-Coding Skeleton (Java) ↗</a></li>`;
+  toc += `</ol></div>`;
+
+  let body = `<h1>${meta.title}</h1>` + toc;
+  presentSections.forEach((r, i) => {
+    body += `<div class="md-section-anchor" id="sec-${i}">`;
+    body += marked.parse(r.md);
+    body += `</div>`;
+  });
+  // skeleton callout
+  body += `<div class="skeleton-note"><strong>📦 Machine-Coding Skeleton:</strong> Production-grade Java code lives in <code>lld-content/${meta.folder}/12_machine_coding_skeleton/</code> — browse it on <a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank">GitHub Pages directory listing</a> or in the source repo.</div>`;
+
+  const html = '<div class="md-body">' + body + '</div>';
+  PAGE_CACHE[id] = html;
+  CONTENT_EL.innerHTML = html;
+  postRender();
+}
+
+function postRender() {
+  // syntax highlight all code blocks
+  if (window.Prism) Prism.highlightAllUnder(CONTENT_EL);
+  // make table content visually polished
+  CONTENT_EL.querySelectorAll('table').forEach(t => {
+    t.classList.add('tbl');
+  });
+}
+
+function goto(page) {
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  const link = document.querySelector('.sb-link[data-page="' + page + '"]');
+  if (link) link.classList.add('active');
+  window.scrollTo(0, 0);
+  document.getElementById('sidebar').classList.remove('open');
+  history.replaceState(null, '', '#' + page);
+  if (page === 'home') { renderHome(); return; }
+  if (FRAMEWORK_PAGES[page]) return renderFrameworkPage(page);
+  if (PROBLEMS[page]) return renderProblemPage(page);
+  showError('Unknown page: ' + page);
+}
+
+// wire up sidebar
+document.querySelectorAll('.sb-link').forEach(link => {
+  if (link.dataset.external) return; // let normal href work
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    goto(link.dataset.page);
+  });
+});
+
+// search — filters sidebar entries by text
+const searchInput = document.getElementById('sb-search-input');
+let searchTimer;
+searchInput.addEventListener('input', (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.sb-link').forEach(link => {
+      if (!link.dataset.page && !link.dataset.external) return;
+      const t = link.textContent.toLowerCase();
+      link.classList.toggle('hidden', q.length > 0 && !t.includes(q));
+    });
+    // hide groups whose all links are hidden
+    document.querySelectorAll('.sb-group').forEach(g => {
+      const visible = g.querySelectorAll('.sb-link:not(.hidden)');
+      g.classList.toggle('hidden', q.length > 0 && visible.length === 0);
+    });
+  }, 60);
+});
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { searchInput.value = ''; searchInput.dispatchEvent(new Event('input')); searchInput.blur(); }
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); searchInput.focus(); searchInput.select();
+  }
+});
+
+// initial render based on hash
+const initialHash = window.location.hash.slice(1);
+if (initialHash && (initialHash === 'home' || FRAMEWORK_PAGES[initialHash] || PROBLEMS[initialHash])) {
+  goto(initialHash);
+} else {
+  renderHome();
+}
+</script>
+</body>
+</html>
