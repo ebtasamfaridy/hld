@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Dark rounded background matching site theme -->
+  <rect width="64" height="64" rx="12" fill="#0d1117"/>
+
+  <!-- Connection lines (drawn first so nodes sit on top) -->
+  <line x1="20" y1="20" x2="44" y2="20" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="20" y1="20" x2="32" y2="44" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="44" y1="20" x2="32" y2="44" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Three nodes: client, server, db (visually = a mini architecture diagram) -->
+  <circle cx="20" cy="20" r="7" fill="#58a6ff"/>
+  <circle cx="44" cy="20" r="7" fill="#58a6ff"/>
+  <circle cx="32" cy="44" r="7" fill="#58a6ff"/>
+</svg>

@@ -4,6 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>Interview Quick Ref</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+<link rel="icon" type="image/png" href="data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E📚%3C/text%3E%3C/svg%3E"/>
+<link rel="apple-touch-icon" href="favicon.svg"/>
+<meta name="theme-color" content="#0d1117"/>
 <style>
 :root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bd:#30363d;--bl:#58a6ff;--gr:#3fb950;--or:#ffa657;--pu:#d2a8ff;--rd:#f78166;--yl:#e3b341;--tx:#e6edf3;--t2:#8b949e;--t3:#c9d1d9}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -2401,7 +2405,452 @@ SERVER SIDE:
   Identical segments cached by CDN regardless of viewer
   Manifest tweaks per device (mobile gets ladder without 4K)
   Per-CDN edge can pre-decrypt manifest URLs (signed)`,pts:["Segments are static + cacheable — players choose dynamically","BOLA outperforms simple throughput ABR in real networks","ABR ladder is per-title (action movie needs more bitrate than animation)","Server never re-encodes per request — all variants pre-built"]}],
-xq:[{q:"Why not just one CDN like Cloudflare?",a:"At 100 Tbps peak, no single commercial CDN can serve everything affordably. Netflix built Open Connect: dedicated cache appliances inside ISPs, pre-warmed with the catalogue. ~99% of bytes get served from a box on the ISP's own LAN — bandwidth costs collapse from per-GB egress to one-time hardware. Disney+/Amazon use embedded-cache variants; smaller services use multi-CDN routed by Real-User-Measurement signals (latency, error rate).",pb:true},{q:"How is DRM different from regular HTTPS?",a:"HTTPS protects the bytes in transit; DRM protects them at rest and during playback inside the device. With DRM (Widevine/FairPlay/PlayReady): segments encrypted at packaging time with a content key. The decryption key is delivered separately as a 'license' bound to a specific device (using device certificate + TEE/Secure Enclave). Decoded pixels never leave the protected video path — they can't be screenshot or screen-recorded on a compliant device. The license enforces per-region rules and simultaneous-stream caps. Encrypted bytes are identical for all viewers (cacheable on CDN); only the license is per-user."},{q:"How do you keep watch-resume in sync across devices?",a:"Player sends a heartbeat every ~30s: { profile_id, title_id, position_s, device_id }. Heartbeats → Kafka (~1.7M/s peak) → consumer writes to Cassandra partitioned by profile_id (cross-device resume queries are single-partition). Reads on session start: GET watch_state for this profile → home screen 'Continue Watching' row + Player jumps to position. Conflict resolution: server keeps max(position) per (profile, title) — last-writer-wins biased toward forward progress."},{q:"How does the 4 simultaneous streams cap actually work?",a:"License server tracks active leases per account. When a player starts: requests a license → license server checks active license count for that account → if &lt; tier limit, issue license with TTL (e.g. 5 min, refreshed via heartbeats). When player stops cleanly: release license. If player crashes: TTL expires naturally; slot frees up. Race condition (two clients start simultaneously at the limit): license server uses Redis WATCH+MULTI or CAS to make 'check + grant' atomic. The CDN doesn't enforce this — segments are cached and cheap; only the license server gatekeeps."},{q:"Why pre-encrypt the same bytes for every viewer instead of per-user?",a:"Per-user encryption would mean the CDN can't cache — every viewer fetches different bytes from origin. Catastrophic at 100 Tbps. Industry standard: encrypt each variant once per title (per DRM scheme) at packaging time; same bytes served to all viewers; differentiation is purely in the per-user license. Forensic watermarking exists for piracy investigation but applies subtle per-session perturbation that doesn't break caching."}]}
+xq:[{q:"Why not just one CDN like Cloudflare?",a:"At 100 Tbps peak, no single commercial CDN can serve everything affordably. Netflix built Open Connect: dedicated cache appliances inside ISPs, pre-warmed with the catalogue. ~99% of bytes get served from a box on the ISP's own LAN — bandwidth costs collapse from per-GB egress to one-time hardware. Disney+/Amazon use embedded-cache variants; smaller services use multi-CDN routed by Real-User-Measurement signals (latency, error rate).",pb:true},{q:"How is DRM different from regular HTTPS?",a:"HTTPS protects the bytes in transit; DRM protects them at rest and during playback inside the device. With DRM (Widevine/FairPlay/PlayReady): segments encrypted at packaging time with a content key. The decryption key is delivered separately as a 'license' bound to a specific device (using device certificate + TEE/Secure Enclave). Decoded pixels never leave the protected video path — they can't be screenshot or screen-recorded on a compliant device. The license enforces per-region rules and simultaneous-stream caps. Encrypted bytes are identical for all viewers (cacheable on CDN); only the license is per-user."},{q:"How do you keep watch-resume in sync across devices?",a:"Player sends a heartbeat every ~30s: { profile_id, title_id, position_s, device_id }. Heartbeats → Kafka (~1.7M/s peak) → consumer writes to Cassandra partitioned by profile_id (cross-device resume queries are single-partition). Reads on session start: GET watch_state for this profile → home screen 'Continue Watching' row + Player jumps to position. Conflict resolution: server keeps max(position) per (profile, title) — last-writer-wins biased toward forward progress."},{q:"How does the 4 simultaneous streams cap actually work?",a:"License server tracks active leases per account. When a player starts: requests a license → license server checks active license count for that account → if &lt; tier limit, issue license with TTL (e.g. 5 min, refreshed via heartbeats). When player stops cleanly: release license. If player crashes: TTL expires naturally; slot frees up. Race condition (two clients start simultaneously at the limit): license server uses Redis WATCH+MULTI or CAS to make 'check + grant' atomic. The CDN doesn't enforce this — segments are cached and cheap; only the license server gatekeeps."},{q:"Why pre-encrypt the same bytes for every viewer instead of per-user?",a:"Per-user encryption would mean the CDN can't cache — every viewer fetches different bytes from origin. Catastrophic at 100 Tbps. Industry standard: encrypt each variant once per title (per DRM scheme) at packaging time; same bytes served to all viewers; differentiation is purely in the per-user license. Forensic watermarking exists for piracy investigation but applies subtle per-session perturbation that doesn't break caching."}]},
+
+{id:27,name:"Dropbox / File Sync",short:"File Sync",diff:"hard",
+req:{fn:["Upload / download files with progress + resume","Real-time sync across all devices of a user (P95 < 5 s)","Share file or folder with another user (read or read-write)","Version history (last 30 days)","Conflict handling: both versions kept (Conflicted Copy)","Selective sync — choose which folders are downloaded","Filename search; optional content search","Web access (browser file manager + viewer)"],nfn:["~500M users, ~100M DAU","Avg ~10 GB / user; tail Pro users up to 5 TB","Total ~5 EB logical / ~2 EB physical (dedup)","Sync latency P95 < 5 s laptop → other devices","Durability 11 nines (S3-grade)","Availability 99.99% reads / 99.95% writes"],ask:["Web only or with native desktop / mobile clients?","Is end-to-end encryption required?","Avg file size (many small docs vs few large videos)?","Multi-region or single region?"]},
+est:[{m:"File change events / day",f:"100M DAU × ~10 changes",v:"~1B/day",d:"~10k QPS avg, ~50k peak"},{m:"Peak upload bandwidth",f:"50k × ~200KB avg post-delta",v:"~10 GB/s",d:"Never proxy through app servers — direct-to-S3"},{m:"Storage cumulative",f:"5 yrs of growth",v:"~5 EB logical / ~2 EB physical",d:"~60% saved by content-hash dedup"},{m:"Open WebSocket conns",f:"~30% of DAU online",v:"~30M",d:"Dedicated push-notification fleet, sharded by user_id"},{m:"Stored bytes / day",f:"1B × 200 KB",v:"~200 TB / day",d:"Tiered to S3 IA → Glacier for cold data"}],
+model:[{name:"files (sharded Postgres, by user_id)",fields:[["file_id","UUID PK"],["user_id, path, current_revision, sha256"],["size, mime, created_at, updated_at, deleted_at"]],idx:["unique(user_id, path)","by user_id (shard key)"]},{name:"chunks + blob_refs (content-addressed in S3)",fields:[["chunk_sha256 PK","8-bit SHA-256 of 4 MB chunk"],["s3_key — sha256[:2]/sha256[2:]/full","immutable; same chunk = same key globally"],["refcount","incr on revision insert, decr on delete; GC at 0 after 30-day grace"]],idx:["primary key = sha256 → automatic dedup across all users"]},{name:"file_chunks (composes file from chunks)",fields:[["file_id, revision, chunk_index, chunk_sha256"]],idx:["composite (file_id, revision, chunk_index)"]},{name:"change_log (Kafka, per-user partition)",fields:[["user_id, revision, op_type (upsert/delete), path, sha256, ts"]],idx:["replayable; clients reconnect with cursor and catch up"]}],
+apis:[{m:"POST",p:"/v1/files",auth:"session",desc:"Initialise upload — server returns chunked upload plan",req:'{ path: "/proj/spec.docx", size: 1048576, sha256: "..." }',res:'{ file_id, chunks: [{ index, sha256, presigned_put_url }] }  // client uploads only missing chunks',codes:"200 OK"},{m:"PUT",p:"<presigned_url>",auth:"S3 presigned",desc:"Client uploads each chunk directly to S3 (never through app server)",codes:"200 OK"},{m:"POST",p:"/v1/files/{file_id}/complete",auth:"session",desc:"Finalise after all chunks uploaded",res:'{ revision: 42, server_modified_at }',codes:"201 Created"},{m:"GET",p:"/v1/changes?cursor=...",auth:"session",desc:"List changes since cursor (sync clients catch up)",res:'{ changes: [{type, path, file_id, revision, sha256}], cursor: "...next..." }',codes:"200 OK"},{m:"GET",p:"/v1/files/{file_id}?revision=42",auth:"session",desc:"Download specific revision",res:'302 → presigned S3 URL',codes:"302"}],
+hld:`Desktop / Mobile / Web client
+        │
+        ▼
+   API Gateway  (auth, rate-limit, TLS)
+        │
+   ┌────┼─────────────┬──────────────────┐
+   ▼    ▼             ▼                  ▼
+ Metadata Svc   Upload Svc          Sync Svc (WebSocket)
+   │               │                    │
+   ▼            presigned URL          Kafka change_log topic
+ Sharded Postgres   ↓                    │
+ (files, revisions) S3 chunk store       │  fan-out to subscribed clients
+       │            (content-addressed)  │
+       ▼                                ▼
+  CDC → Kafka → Sync Svc                Each WS terminator pushes
+       │                                 to its connected clients
+       ▼
+  Search index (ES)
+  for filename / content search`,
+hldWhy:[["Sharded Postgres for metadata","50k peak QPS comfortably within sharded PG; ACID needed for files↔revisions↔chunks joins"],["S3 with content-hashed keys","key = sha256 → identical chunks merge automatically across users; ~60% storage saved"],["Kafka per-user change_log","replayable feed; clients reconnect with cursor; ~50k events/s within Kafka"],["WebSocket Sync Svc","pushes change events in < 1 s; sharded by user_id; falls back to polling"],["Direct-to-S3 presigned uploads","never proxy 10 GB/s through app servers — would melt the fleet"],["Rolling-hash chunking (~4 MB)","insert 1 byte at start of 1 GB file → only 1 chunk re-uploaded, not the whole file"]],
+deep:[{name:"Chunking & Content-Addressed Dedup",diag:`THE 60% SAVINGS WIN
+  ~60% of bytes uploaded already exist somewhere in the system
+
+ALGORITHM (Rabin fingerprint rolling hash):
+  Slide a window over the file; cut at boundaries where
+  hash matches a specific pattern.
+  Result: small edits don't shift downstream chunk boundaries.
+
+  Naive fixed 4MB cuts:
+    insert 1 byte at file start → ALL 250 chunks re-upload (1 GB file)
+  Rolling hash cuts:
+    insert 1 byte at file start → 1 chunk re-uploads (4 MB)
+
+UPLOAD PROTOCOL:
+  1. Client chunks file locally; computes SHA-256 of each chunk
+  2. Client → POST /files { sha256_per_chunk: [...] }
+  3. Server: "I have these 7 chunks already; please upload these 3"
+  4. Client direct-PUTs the 3 missing chunks to S3 (presigned URLs)
+  5. Server: refcount++ for all 10 chunks; commits new revision
+
+DEDUP TABLE:
+  blob_refs(sha256 PK, s3_key, refcount, last_referenced_at)
+  GC: chunks at refcount=0 deleted after 30-day grace`,pts:["Per-chunk SHA-256 = the content-addressed key","Rolling hash boundary detection survives in-place file edits","Refcount tracks usage; GC after grace = matches version history retention","Same chunk uploaded by 1000 users = stored 1 time on S3"]},{name:"Sync Protocol — Cursors & Reconnect",diag:`Each user has a monotonically-increasing revision per file.
+  Each client stores last-seen cursor (last applied revision).
+
+INITIAL SYNC (cold start):
+  1. Client → GET /changes?cursor=0 → up to 1000 changes
+  2. For each change: download file (or just the needed chunks)
+  3. Client commits cursor; repeat until caught up
+
+STEADY STATE (online):
+  1. Client opens WebSocket; subscribes user_id
+  2. Sync Svc pushes change events as they happen
+  3. Client applies; persists cursor
+
+RECONNECT AFTER OFFLINE:
+  1. Client → GET /changes?cursor=<last>  to catch up
+  2. Once empty, reconnect WebSocket
+
+KEY DESIGN:
+  Change log is durable + per-user — client can always replay
+  from any cursor (no centralised "current state" assumption).`,pts:["Cursor-based catch-up survives any disconnect length","Same code path for cold-start and online steady-state","Each user is a single Kafka partition → ordering guaranteed","Server retains change_log per user ≥ 90 days (matches version history)"]},{name:"Conflict Resolution — Conflicted Copy",diag:`Two devices edit same file offline; both reconnect.
+  Three strategies, escalating sophistication:
+
+(1) Last-Writer-Wins
+    Simple but loses data. NOT what Dropbox does.
+
+(2) Dropbox's "Conflicted Copy"  ← DEFAULT for general files
+    Loser is renamed:
+      spec (Alice's conflicted copy 2026-06-03).docx
+    Both versions persist; user resolves manually.
+
+(3) CRDT / OT merge
+    For structured files (Google Docs-style). Different problem (P19).
+
+DETECTION:
+  Each file revision carries a parent_revision.
+  New write claims parent R10 but server is at R12 → conflict.
+  Client notified; file renamed locally; both versions live in DB.`,pts:["Conflicted Copy = no data loss, simple semantics","Detection via parent_revision field — basic optimistic concurrency","Server is authoritative — clients always reconcile to server's view","CRDT/OT only used for structured docs (Google Docs P19) — overkill here"]}],
+xq:[{q:"Why not store the whole file, no chunking?",a:"A 1-byte edit to a 1 GB file would re-upload 1 GB. With 4 MB rolling-hash chunks, you re-upload exactly one chunk (4 MB) — 250× bandwidth savings. Rolling-hash boundary detection means even insertions don't shift downstream boundaries, so most edits affect 1-3 chunks total.",pb:true},{q:"How do you do client-side end-to-end encryption?",a:"Per-file random data-encryption key (DEK), encrypted with the user's master key (which never leaves the device, derived from passphrase). Encrypted DEKs stored alongside metadata; encrypted chunks stored in S3. The server can no longer help with cross-user content dedup or content search — both are now per-user only. Trade-off: privacy vs storage cost (no dedup) + UX (no server-side search)."},{q:"How does the desktop client detect file changes?",a:"Native filesystem watchers: inotify on Linux, FSEvents on macOS, ReadDirectoryChangesW on Windows. Periodic scan as fallback (every ~10 min) catches anything the watcher missed. On change: client recomputes affected chunk hashes; calls /files API to find missing chunks; uploads only those."},{q:"What if I'm offline for a month and come back?",a:"Client cursor is stale (e.g. R=1000, server is now at R=50000). Client → GET /changes?cursor=1000 returns paginated history (1000 changes per page); client iterates until cursor catches up. Server retains change_log per user for at least 90 days (matches version history retention). For users offline longer than retention, fall back to full re-sync from current state."},{q:"How do you handle very large shared folders (team with 100k files)?",a:"Selective sync at the path level: clients tell server which sub-paths to subscribe to via /selective_sync API. Server-side fanout is filtered: only changes within subscribed paths are pushed to that client. Filename / metadata is always synced (so search works); file bodies download on-demand or when the user navigates to the folder. Saves bandwidth and local disk on partial-team-folder setups."}]},
+
+{id:28,name:"Web Crawler",short:"BFS over the web",diff:"medium",
+req:{fn:["Crawl the open web starting from seed URLs","Discover new URLs from page links","Respect robots.txt per host","Per-host rate limit (≤ 1 req/sec default)","Dedup URLs and near-duplicate content","Recrawl popular / fast-changing pages more often","Persist raw HTML + extracted text + link graph"],nfn:["~1 B pages / day = ~10k pages/sec sustained","~50 B URLs in frontier","~10 B unique pages stored (~500 PB at 50 KB compressed)","Tier-1 (news, top sites): hourly recrawl","Tier-2: daily; Tier-3: weekly+","DC bandwidth ~12 Gbps avg"],ask:["Google-scale (1B pages/day) or Common-Crawl scale?","Do we render JS or just static HTML?","Whole web or only English seeds?"]},
+est:[{m:"Avg fetch QPS",f:"1B / 100k sec",v:"~10k pages/sec",d:"Peak ~30k; ~3k fetcher workers at 10/sec each"},{m:"Network in",f:"10k × 150 KB raw",v:"~1.5 GB/s = ~12 Gbps",d:"Per-region fleet to keep DNS + locality reasonable"},{m:"Frontier writes/sec",f:"10k pages × 5 unique new URLs each",v:"~50k QPS",d:"Kafka topic sharded by host_hash"},{m:"Storage/day",f:"1B × 50 KB compressed",v:"~50 TB/day",d:"S3 (cheap, immutable, content-hashed key)"},{m:"URL-seen Bloom filter",f:"50 B URLs at 0.01% FPR",v:"~60 GB sharded",d:"~10 bits per URL; sharded by host across nodes"}],
+model:[{name:"Frontier (Kafka, partitioned by host_hash)",fields:[["key=host_hash, value={ url, priority, enqueued_at, parent_url }"]],idx:["one Kafka partition per host hash bucket → 1 fetcher owns it → trivial per-host rate limit"]},{name:"url_meta (Cassandra, partition by host)",fields:[["host PK, url SK"],["first_seen, last_fetched_at, http_status, content_sha1, simhash"],["fetch_count, change_count, change_rate (driving recrawl tier)"]],idx:["partition by host for locality; bucket within host if hostname is huge"]},{name:"Page store (S3, content-addressed)",fields:[["key = sha1[:2]/sha1[2:4]/full_sha1.html.gz"],["immutable; gzip; ~50 KB per page avg"]],idx:["dedup via content-hash key"]},{name:"robots cache (Redis, TTL 24h)",fields:[["robots:<host> → { allowed_patterns, crawl_delay_s, expires_at }"]],idx:["per-host TTL ~24h; refreshed on next fetch after expiry"]}],
+apis:[{m:"POST",p:"/admin/seeds",auth:"admin",desc:"Add seed URLs to frontier",req:'{ urls: ["https://...", "https://..."] }',codes:"202 Accepted"},{m:"GET",p:"/admin/frontier/stats",auth:"admin",desc:"Inspect frontier state",res:'{ size, top_hosts: [...], oldest_enqueued, lag_per_partition: {...} }',codes:"200 OK"},{m:"POST",p:"/pages (internal)",auth:"service",desc:"Fetcher → Parser → Indexer pipeline event",req:'{ url, fetched_at, http_status, content_sha1, body_s3_key }',codes:"202 Accepted"},{m:"POST",p:"/links (internal)",auth:"service",desc:"Parser submits extracted outbound links",req:'{ src_url, link_urls: [...] }',codes:"202 Accepted"}],
+hld:`Seed URLs ──┐
+              ▼
+   Frontier (Kafka, sharded by host_hash)
+   one partition per host hash bucket
+              │
+              ▼
+   Fetcher fleet (3k workers)
+   - DNS cache (LRU, TTL 1h)
+   - robots.txt cache (Redis, TTL 24h)
+   - per-host rate limit enforced
+              │
+   raw HTML  ▼
+       S3 (page store, content-hashed key)
+              │
+              ▼
+   Parser (extract links, compute SimHash, language)
+              │
+       ┌──────┴──────┐
+       ▼              ▼
+   url_meta +     URL-Seen Bloom filter
+   link graph     (per-host shard)
+   (Cassandra)    │
+                  ▼
+              if new: enqueue back to Frontier
+              if seen: drop`,
+hldWhy:[["Kafka frontier sharded by host_hash","All URLs of a host land on one fetcher → trivial per-host rate limit, no cross-worker coordination"],["S3 for raw pages (content-addressed)","Cheap, immutable, infinite scale; dedup via SHA-1 key"],["Cassandra for url_meta","~50k write QPS, partition-keyed by host, no joins → right shape"],["Redis robots cache","Millions of distinct hosts; TTL 24h; lookup on every fetch"],["Bloom filter for URL-seen","60 GB total / sharded; ~10 ns lookup; false positives drop new URLs (acceptable trade-off)"],["Adaptive recrawl tiers","Tier-1 hourly / Tier-2 daily / Tier-3 weekly+ — change_rate signal from change history"]],
+deep:[{name:"URL Frontier (Mercator design)",diag:`Three competing requirements:
+  1. Politeness — never 2 simultaneous fetches to same host
+  2. Priority — high-PageRank hosts get more crawl budget
+  3. Distributedness — scale to billions of URLs
+
+  ┌─────────────────────────────────────┐
+  │ Front queues (priority bands)        │
+  │   q1 = high   q2 = med   q3 = low    │
+  └────────────┬────────────────────────┘
+               ▼ (proportional pull)
+  ┌─────────────────────────────────────┐
+  │ Back queues — one per host           │
+  │   host_a: [u1, u2, ...]              │
+  │   host_b: [u3, u4, ...]              │
+  └────────────┬────────────────────────┘
+               ▼ (round-robin with politeness gate)
+           Fetcher
+
+IMPLEMENTATION:
+  Each fetcher consumes Kafka partitions assigned to its host hashes.
+  In-process scheduler picks next eligible host (politeness timer expired)
+  and dequeues one URL.`,pts:["Kafka partition per host_hash bucket = one fetcher owns it = free politeness","Priority bands ensure tier-1 always gets bandwidth even when frontier huge","Per-host politeness timer in fetcher's local memory — no Redis lock needed","If host returns 503: halve rate; on success: slowly recover"]},{name:"Content Dedup (URL + SimHash)",diag:`TWO LAYERS OF DEDUP:
+
+LAYER 1: URL canonicalisation + Bloom filter
+  Canonicalise: lowercase scheme/host, strip default ports,
+                sort query params, drop tracking params (utm_*, fbclid),
+                resolve %xx, drop fragment
+  Hash → check Bloom (per-host shard)
+    "Definitely not seen" → enqueue + add to Bloom + Cassandra
+    "Maybe seen" → double-check Cassandra (rare path)
+
+LAYER 2: SimHash near-duplicate detection
+  Many distinct URLs serve same/similar content:
+    mirror sites, syndicated articles, parameterised URLs
+  Compute 64-bit SimHash on page text
+  Two pages within Hamming distance ≤ 3 = near-duplicates
+  → Store only one canonical copy; link others as aliases
+
+WIN: ~30% of crawled pages are near-duplicates of existing content`,pts:["Canonicalisation kills 90% of obvious dup URLs before any DB hit","Bloom: 60 GB for 50B URLs (vs 5 TB for an exact set)","SimHash: 64-bit hash; Hamming distance ≤ 3 = near-dup","Saves storage AND avoids serving redundant pages to indexers"]},{name:"Adaptive Recrawl by Change Rate",diag:`Naive (fixed schedule): wasted budget OR stale content
+  Static page recrawled hourly = waste
+  News site recrawled weekly = stale
+
+ADAPTIVE:
+  Track change_rate per page = #(content changes) / #(fetches) over 30 days
+  Bucket into tiers:
+    Tier 1 (high change rate + popular): ~hourly recrawl
+    Tier 2 (medium): ~daily
+    Tier 3 (low / rarely changes): ~weekly+
+
+EFFICIENCY TRICKS:
+  HTTP conditional GET: If-Modified-Since / If-None-Match
+    Server returns 304 Not Modified with no body when unchanged
+    ~70% bandwidth saving on recrawls
+  Sitemap polling: subscribe to sitemap pings + RSS feeds for hot sites
+    Push-style discovery; saves polling`,pts:["change_rate from 30-day fetch history drives tier assignment","If-Modified-Since 304 → no body transferred (just headers)","RSS/sitemap pings = push discovery for news sites","Crawl budget reallocated to high-value pages over time"]}],
+xq:[{q:"Why Kafka and not Redis Lists for the frontier?",a:"Kafka is durable + replayable; on a 50B-URL frontier you cannot afford to lose state. Redis Lists are RAM-only; the frontier alone (10 B URLs avg in flight × ~200 B = ~2 TB) would never fit in memory. Kafka writes to disk, replication factor 3, retention 7 days; survives any single broker loss.",pb:true},{q:"How does this differ from Google's crawler?",a:"Google's crawler integrates with their PageRank and serving infrastructure — recrawl decisions are driven by query-time importance signals (which pages are getting clicked? which are showing in current results?). Ours approximates with offline change_rate stats from fetch history. Google also has unparalleled DNS infrastructure, ML-driven politeness, JS rendering at scale, and integration with sitemaps + WebSub for push-style discovery."},{q:"What about JS-rendered SPAs?",a:"Headless Chrome / Puppeteer fleet for opt-in hosts. ~10× the latency (waiting for JS execution + network idle), ~20× the cost per page (browser memory overhead). Detect JS-required pages by initial HTML being suspiciously empty (e.g. < 5 KB with a single root div). Maintain a per-host flag: 'this host requires JS' → route to headless fleet."},{q:"How do you avoid spider traps (infinite calendar URLs, etc.)?",a:"(1) Per-host depth limit (default ~50 hops from seed). (2) Pattern detection: URLs with monotonically growing date paths (/calendar/2026/05/19/2026/05/20/...) flagged as traps. (3) Session-id detection: URLs differing only in known session params canonicalise to the same form. (4) Soft-404 detection: same body content (same SimHash) at many different URLs → host flagged. (5) Honor nofollow links; render-aware crawler can detect display:none honeypot links."},{q:"How do you handle a popular host that's also a giant (e.g. youtube.com with billions of URLs)?",a:"A single host can't sit on one fetcher partition forever. Bucket within the host: composite key (host, hash_bucket) — partitions the host's URLs across multiple frontier partitions. Politeness still enforced via one fetcher per (host, bucket_id) pair, so YouTube's URLs effectively get N fetchers in parallel without violating per-host concurrency rules at the actual YouTube datacentre."}]},
+
+{id:29,name:"Ad Click Aggregator",short:"Real-time Counts",diff:"hard",
+req:{fn:["Ingest billions of click events from users","Aggregate by minute/hour/day across many dimensions (ad_id, campaign_id, advertiser_id, country, device)","Live advertiser-facing dashboards: P95 query < 1 s","Generate billable totals by midnight UTC + 1 hour","Deduplicate (same click counted once even with retries)","Filter fraud (bots, click farms, accidental double-taps)"],nfn:["~10 B click events/day = ~100k/s avg, ~500k peak","Reporting freshness: aggregates visible within 1 min","Accuracy: billing-grade — exactly-once","Retention: raw 30d / minute 90d / hour 1y / day forever","Availability 99.99% — losing data = lost revenue"],ask:["Serving ads ourselves or only counting?","Click vs impression vs conversion (same pipeline, different volume)?","Worst-case lateness tolerated (5 min for dashboards, 1 hour for billing)?"]},
+est:[{m:"Avg ingest QPS",f:"10B / 100k",v:"~100k events/sec",d:"Peak ~500k (5× avg); Kafka cluster of ~5 brokers handles easily"},{m:"Per event size",f:"click_id + ad_id + user + ts + ...",v:"~500 B",d:"~50 MB/s avg = 400 Mbps ingress; cheap"},{m:"Raw S3 archive/day",f:"10B × 500 B",v:"~5 TB/day",d:"Parquet partitioned by date; for replay + billing audit"},{m:"Aggregate rows/day in ClickHouse",f:"after rollup by (ad, minute, dims)",v:"~100M rows/day (~10 GB)",d:"Columnar; query times sub-second on billions of rows"},{m:"Dashboard QPS",f:"~500 advertisers polling",v:"~5k QPS",d:"Hot queries cached in Redis 30s TTL"}],
+model:[{name:"Kafka topic clicks_raw (partitioned by ad_id)",fields:[["{ click_id, ad_id, campaign_id, advertiser_id, ts, ip, user_id_hash, ... }"],["retention 30 days"]],idx:["partition by ad_id → Flink keyBy is local; no shuffle"]},{name:"Flink keyed state (RocksDB + S3 checkpoints)",fields:[["per (ad_id, minute_bucket): { count, HLL_unique_users }"],["click_ids seen (set, TTL 1h) for dedup"]],idx:["checkpointed every 60s → exactly-once with Kafka source offsets"]},{name:"ClickHouse table clicks_per_minute",fields:[["minute_bucket DateTime, ad_id, campaign_id, advertiser_id, country, device"],["count UInt64, unique_users UInt64, insert_ts DateTime"],["ENGINE = ReplacingMergeTree(insert_ts) PARTITION BY toYYYYMMDD"]],idx:["ORDER BY (advertiser_id, ad_id, minute_bucket) → query patterns hit the sort key"]},{name:"S3 archive (parquet, daily partitions)",fields:[["every raw event also persisted; partitioned by date"],["enables replay / batch reconciliation for billing"]],idx:["queryable via Athena/Trino for audit"]}],
+apis:[{m:"POST",p:"/v1/clicks",auth:"SDK token",desc:"Click ingest (from ad SDK or browser)",req:'{ click_id: "uuid-from-sdk", ad_id, campaign_id, advertiser_id, user_id_hash, ip, device_type, country, ts_iso }',res:'{ accepted: true }',codes:"202 Accepted (always; cheap path)"},{m:"GET",p:"/v1/reports",auth:"advertiser session",desc:"Advertiser dashboard query",req:'?advertiser_id=...&from=2026-05-01&to=2026-05-19&groupBy=ad_id,country&granularity=hour',res:'{ rows: [{ ad_id, country, hour, count, unique_users }], cached: true, query_time_ms: 45 }',codes:"200 OK | 429 rate limit"}],
+hld:`Ad SDK / browser
+       │
+       ▼ POST /v1/clicks (with click_id)
+   Ingest API (stateless)
+       │
+       ▼
+   Kafka clicks_raw (partitioned by ad_id)
+       │
+       ├──► S3 archive (parquet, daily)
+       │    (for replay + billing batch)
+       │
+       ▼
+   Flink job
+     - dedup (click_id, TTL 1h state)
+     - fraud filter
+     - tumbling 1-min windows
+     - watermark 5 min lateness allowance
+       │
+       ├──► ClickHouse (per-min agg)
+       │    materialized views roll up to hour, day
+       │    → Dashboard / Reports API
+       │
+       └──► Redis hot cache (current-minute top-N)
+            → live "top ads" widget
+
+DAILY BILLING JOB (midnight UTC + 1h):
+  Read S3 raw → recompute day total with full dedup + ML fraud rules
+  Compare to ClickHouse day rollup; flag deltas > 0.1%
+  Charge advertisers from batch number, never stream number`,
+hldWhy:[["Ingest API stateless + 202","Cheap path: validate token, write to Kafka, return. Auto-scales horizontally."],["Kafka partitioned by ad_id","Flink can keyBy ad_id locally; per-ad windows have no cross-partition shuffle"],["Flink for aggregations","Exactly-once via checkpointing; event-time windows + watermarks handle late events natively"],["ClickHouse for queries","Columnar, sub-second on billions of rows, materialized views for rollups"],["S3 raw archive","Stream is for dashboards; batch over S3 is for billing — separate concerns"],["ReplacingMergeTree","Same (window-key, insert_ts) row replaces previous on merge → idempotent on Flink re-emit"]],
+deep:[{name:"Three Layers of Exactly-Once",diag:`THE BILLING-GRADE GUARANTEE:
+  Lost event = lost revenue
+  Duplicate event = fraud / over-billing
+  Both are equally unacceptable
+
+LAYER 1: SDK-side click_id
+  Random UUID generated on the device
+  Same retried HTTP call carries the SAME click_id
+  → Network retries can't create duplicates
+
+LAYER 2: Flink dedup state
+  Keyed-state set of click_ids seen in last 1 hour (TTL)
+  Duplicate click_id → dropped before aggregation
+  → Producer retries can't double-count
+
+LAYER 3: ClickHouse ReplacingMergeTree
+  Same (window-key, insert_ts) row replaces previous on merge
+  Even if Flink emits a window twice after recovery,
+  the latest insert_ts wins
+  → Flink crash recovery can't double-count
+
+CHECKPOINT ATOMICITY:
+  Flink checkpoint coordinates:
+    Kafka source offsets
+    RocksDB keyed state
+    ClickHouse sink barrier
+  All advance together → end-to-end exactly-once`,pts:["UUID at the SDK is the foundation — without it, dedup is impossible","Flink dedup uses TTL state (1h window) to bound memory","ClickHouse ReplacingMergeTree is the last-line idempotency","Three independent layers — defense in depth"]},{name:"Watermarks & Late Events",diag:`PROBLEM: Mobile user goes through a tunnel
+  Event happens at 10:00:00
+  Phone reconnects at 10:10:00 → event arrives now
+  Which minute does it count for?
+
+EVENT TIME vs PROCESSING TIME:
+  Event time: when click actually happened (in the payload)
+  Processing time: when Flink sees it
+  Always aggregate by event time → correct buckets
+
+WATERMARK POLICY:
+  watermark = max_observed_event_time - 5 min
+  Window for minute M closes 5 min after M+1
+
+ALLOWED LATENESS: 1 hour
+  Events arriving within 1h past window close trigger
+  an additional emit (UPDATE row in ClickHouse via ReplacingMergeTree)
+  
+SIDE OUTPUT for very-late events (> 1h):
+  Sent to a side topic
+  Reconciled in the next-day batch job from S3
+
+TRADE-OFF:
+  Longer watermark = more late events captured but slower close
+  5 min is the industry sweet spot for ad-tech`,pts:["Event time != processing time — always use event time","Watermark 5 min = practical sweet spot for late events","ReplacingMergeTree handles re-emit gracefully (just replaces the row)","Very-late events go to batch reconciliation, not stream"]},{name:"Stream vs Batch — Dashboards vs Billing",diag:`TWO PATHS, SAME DATA:
+
+STREAM PATH (the dashboard):
+  Kafka → Flink (5-min watermark) → ClickHouse + Redis
+  Latency: ~1 min from click to dashboard
+  Eventually consistent within minutes
+  Used for: live monitoring, "how is the campaign doing right now?"
+
+BATCH PATH (the billing):
+  Daily at midnight UTC + 1h:
+    Read S3 raw events for previous day (parquet, partitioned by date)
+    Apply FULL dedup + ML fraud rules (more expensive than streaming)
+    Compute "ground truth" per-ad day total
+    Compare to ClickHouse day rollup; flag deltas > 0.1% for review
+    CHARGE ADVERTISERS FROM BATCH NUMBER
+
+WHY TWO PATHS:
+  Stream is fast but uses approximations (HLL, watermarks)
+  Batch is slow but exact + reproducible + auditable
+  Both eventually converge — billing always trusts batch`,pts:["Stream serves dashboards (cheap, fast, approximate-OK)","Batch serves billing (slow, exact, auditable)","Convergence: batch and stream should agree within 0.1% — alert if not","Replay safety: S3 raw enables re-computation if logic changes"]}],
+xq:[{q:"Why Flink and not Spark Streaming?",a:"Spark Streaming is micro-batch (~10s minimum latency); we need < 1-minute freshness with event-time semantics + exactly-once. Flink is true streaming (event-by-event), has native event-time + watermarks, and checkpointing gives end-to-end exactly-once when paired with Kafka source + idempotent sink (ClickHouse ReplacingMergeTree).",pb:true},{q:"Why ClickHouse and not Druid / BigQuery?",a:"All three work. ClickHouse is open-source + low-cost + very fast on this exact pattern (single-table aggregates with high-cardinality dimensions). Druid has more complex ops surface; BigQuery is great if you're already on GCP and don't mind the per-query cost. Pinot is competitive too. The pipeline (Kafka → Flink → columnar OLAP) is identical regardless of which OLAP system you pick."},{q:"How do you compute unique users in real time?",a:"HyperLogLog (HLL) state in Flink — ~16 KB per (ad, window). Mergeable across machines. ~2% accuracy is fine for dashboards. For exact billing-grade unique counts, the daily batch job computes from raw S3 events (slow but exact). HLL state stored in Flink RocksDB; checkpointed to S3 with the rest of the keyed state."},{q:"What if the SDK can't generate click_id (very old browsers, server-side ad serving)?",a:"Server generates from a hash of (user_id, ad_id, ts truncated to second). Less perfect than a client-generated UUID (two genuinely separate clicks in the same second from the same user on the same ad would collide), but good enough for retry-window dedup. The 1-second granularity is fine for ad-tech because a real human can't double-click meaningfully in < 1 second."},{q:"How would advertisers query their data without overloading ClickHouse?",a:"Reports API issues a parameterised SQL to ClickHouse with row-level filter (advertiser_id = ?). Cache popular queries in Redis with 30s TTL → repeated dashboard polls hit Redis. Rate-limit per advertiser (e.g. 100 queries/min). For very large exports (last 90 days, all dimensions), serve from S3 parquet via a separate async-export pipeline that returns a download URL."}]},
+
+{id:30,name:"Yelp / Geo-Search",short:"Find Places Nearby",diff:"medium",
+req:{fn:["Search places by location + radius + filters (cuisine, rating, price, open-now)","View place details (photos, hours, menu, reviews, map)","Browse popular places per neighbourhood","Submit a review (rating + text + photos)","Owner-side: claim listing, update info, respond to reviews"],nfn:["~100M listings globally","~500M users, ~50M DAU","Search QPS ~10k avg / ~50k peak","Reviews ~1M/day, photos ~10M/day","P95 search < 200 ms; place page < 100 ms (cached)","Read:Write ~1000:1 (browse-heavy)","Availability 99.99%"],ask:["GPS or also IP-based location?","Owner-side dashboard in scope?","Booking / ordering integrations?"]},
+est:[{m:"Searches / day",f:"50M DAU × ~20 actions × 10% search",v:"~1B/day → ~10k QPS",d:"Peak ~50k (Friday evening); Elasticsearch handles"},{m:"Photos / day",f:"10M × 500 KB raw",v:"~5 TB/day raw → ~7 TB with variants",d:"S3 + CDN (CloudFront); never proxy through app"},{m:"Reviews QPS write",f:"1M / 100k sec",v:"~10 QPS",d:"Trivial; the challenge is read-side, not write-side"},{m:"Listings storage",f:"100M × 5 KB metadata",v:"~500 GB",d:"Fits a single Postgres comfortably"},{m:"Photo storage 5y cumulative",f:"after dedup + tiering",v:"~20 PB",d:"S3 lifecycle to IA (30d) → Glacier (1y)"}],
+model:[{name:"places (PostgreSQL — source of truth)",fields:[["place_id PK, name, lat, lng, address, hours_json"],["cuisine_tags[], price_tier, owner_id, status"],["rating_cached NUMERIC(2,1), review_count_cached INT"]],idx:["primary key","by owner_id for owner dashboard"]},{name:"reviews + photos (PostgreSQL)",fields:[["reviews: review_id PK, place_id FK, user_id, rating, text, photo_ids[], created_at"],["photos: photo_id PK, place_id, user_id, s3_key, w, h, created_at"]],idx:["by place_id for place-page reads"]},{name:"Elasticsearch index 'places'",fields:[["{ place_id, name, name_ngram, location: { lat, lng } (geo_point) }"],["{ cuisine_tags[], price_tier, rating, popularity_score, hours[] }"],["{ is_open_now (denormalised, recomputed every 5 min) }"]],idx:["geo_point + filter + sort in one query → killer pattern"]},{name:"Redis caches",fields:[["place:{id} → place page JSON (TTL 5 min)"],["search:{hash} → search result JSON (TTL 30 s)"]],idx:["~95% hit rate for popular places + queries"]}],
+apis:[{m:"GET",p:"/v1/search",auth:"optional",desc:"Search places with geo + filters",req:'?lat=37.77&lng=-122.41&radius_m=2000&q=ramen&cuisine=japanese&price=2,3&open_at=2026-05-19T19:30Z&rating_gte=4&sort=distance&cursor=...',res:'{ results: [{ place_id, name, distance_m, rating, photo_url, ... }], next_cursor }',codes:"200 OK"},{m:"GET",p:"/v1/places/{place_id}",auth:"optional",desc:"Place details page",res:'{ ...full details with photos, hours, recent reviews }',codes:"200 OK | 404 Not Found"},{m:"GET",p:"/v1/places/{place_id}/reviews",auth:"optional",desc:"Paginated reviews",req:'?cursor=...',codes:"200 OK"},{m:"POST",p:"/v1/places/{place_id}/reviews",auth:"user session",desc:"Submit a review",req:'{ rating: 5, text: "...", photo_ids: [...] }',codes:"201 Created"}],
+hld:`Client (mobile / web)
+        │
+        ▼
+   CDN (CloudFront)  ← serves photos + cached static
+        │
+        ▼
+   API Gateway
+        │
+  ┌─────┼──────────────┬─────────────┐
+  ▼     ▼              ▼             ▼
+ Place  Search Svc   Reviews Svc   Photo Svc
+ Svc      │                            │
+   │     ┌┴────────────┐               ▼
+   │     ▼              ▼              S3
+   │  Elasticsearch  Redis              │
+   │  (geo + filter) (search cache)     ▼
+   ▼                                  CDN
+ Postgres (places, reviews, photos meta)
+   │
+   ▼
+ CDC → Kafka → ES indexer (eventual consistency in seconds)
+              → analytics warehouse (offline)`,
+hldWhy:[["Elasticsearch for search","Combines geo_point + multi-field filter + ranking + pagination in a single query — no DB can match"],["Postgres as source of truth","ACID, owner dashboard joins, simple admin queries; ES is a derived index"],["Redis caches place pages","95% hit rate; place pages are the hot read path"],["CDN for photos","Millions of photo views without touching origin; S3 + CloudFront standard pattern"],["CDC pipeline","Keeps ES eventually consistent (within seconds) without dual-write inconsistency"],["is_open_now denormalised","Computing 'open now' per query is expensive (timezones, holidays); flip a boolean every 5 min via cron"]],
+deep:[{name:"Geo Indexing — Geohash vs H3 vs S2 vs BKD",diag:`MAPPING 2-D SPACE TO 1-D KEYS (locality-preserving):
+
+GEOHASH (base32 string):
+  Recursively divide world into rectangles; encode path as string
+  Prefix property: "9q8yyk" ⊂ "9q8yy" ⊂ "9q8y"
+  Query: scan geohash prefix + 8 neighbours
+  Length 6 = ~600 m × 600 m
+
+H3 (Uber):
+  Hexagonal grid; 64-bit cell IDs
+  Hexagons have uniform neighbours (6 equal-distance)
+  Resolution 9 = ~150 m hex side (good for ride-share dispatch)
+
+S2 (Google):
+  Project sphere onto cube; Hilbert curve serialisation; 64-bit cell IDs
+  Best for very-large-area queries on a planet
+
+ELASTICSEARCH (what Yelp actually uses):
+  geo_point field + BKD tree (Block KD-tree) under the hood
+  geo_distance filter sub-100 ms on 100M docs
+  Combined with text + multi-filter + sort in ONE query`,pts:["Yelp doesn't roll its own — ES geo_point + BKD is the answer","Geohash best for prefix-indexed DBs (Postgres B-tree)","H3 best for Uber-style dispatch (uniform hex neighbours)","S2 best for Google-Maps-scale planet coverings"]},{name:"Combined Geo + Filter + Sort in One ES Query",diag:`Query: "ramen, 2 km from here, open now, rated 4+"
+
+{
+  "query": {
+    "bool": {
+      "must":   [
+        { "match": { "name_ngram": "ramen" } },
+        { "term":  { "cuisine_tags": "japanese" } }
+      ],
+      "filter": [
+        { "geo_distance": {
+            "distance": "2km",
+            "location": { "lat": ?, "lon": ? } } },
+        { "range": { "rating": { "gte": 4 } } },
+        { "term": { "is_open_now": true } }
+      ]
+    }
+  },
+  "sort": [ { "_geo_distance": { "location": ..., "order": "asc" } } ],
+  "size": 20
+}
+
+EXECUTION:
+  Filters are bitset-cached and AND'd
+  geo_distance uses BKD spatial index
+  Sub-100 ms on 100M-doc corpus
+
+THE "is_open_now" TRICK:
+  Computing per query = expensive (timezones, holidays, hours JSON eval)
+  Solution: cron flips boolean on each ES doc every 5 min
+  Filter becomes a trivial term query`,pts:["bool/must + bool/filter is the canonical ES search pattern","Filters cache bitsets → very cheap to AND","Sort by _geo_distance uses the spatial index","Denormalise expensive computations (is_open_now) into the doc"]}],
+xq:[{q:"Why ES instead of pure Postgres + PostGIS?",a:"Postgres + PostGIS handles geo well. But combining geo + multi-field filter + relevance ranking + pagination at 50k QPS taxes a relational DB. ES is purpose-built for this exact shape. Smaller scale (single city, < 1M listings) → Postgres + PostGIS is simpler and totally fine. At Yelp-scale (100M listings, global) → ES wins.",pb:true},{q:"Why not Redis GEO?",a:"Redis GEO is great for pure proximity (Uber-style 'nearest driver in this cell'). It does NOT combine with multi-field filters (cuisine, rating, price, open-now) or relevance ranking — wrong shape for this problem. Use Redis GEO for hot-path dispatch (P5 Uber), use ES for filtered search (P30 Yelp)."},{q:"How fresh is search data?",a:"Eventual consistency — CDC pipeline lag is typically < 30 s. A new review submission shows up in search within seconds (review write → Postgres → CDC → Kafka → ES indexer). For 'must be instant' UX (showing your own just-submitted review on your profile), serve directly from Postgres for that one query; everywhere else, trust ES."},{q:"How do you compute 'open now' across timezones cheaply?",a:"Don't compute per query — denormalise into the doc. A cron job runs every 5 min: for each place, evaluate hours_json against current local time (using the place's timezone) + holiday calendar; flip is_open_now boolean. The ES filter becomes a trivial term lookup. Trade-off: up to 5 min stale (a place that just opened won't show until next cron run) — acceptable for a discovery use case."},{q:"How do you handle a viral place at 100k QPS?",a:"Place page is the hot key. (1) Redis caches the assembled place page (place + top reviews + photos) for 5 min — absorbs 95% of reads. (2) Request coalescing: if cache misses and 1000 requests hit at once, only one fires through to origin; others wait. (3) CDN can cache the API response by URL with a 30-60s TTL for true viral spikes (millions of QPS). (4) For the review write side, place's denormalised rating + count are updated via DB trigger or Kafka consumer."}]},
+
+{id:31,name:"Metrics Monitoring System",short:"Prometheus / Datadog Scale",diff:"hard",
+req:{fn:["Collect metrics from thousands of services and hosts","Multi-dimensional labels (service, method, status, region)","Real-time dashboards (1 min – 30 days, all granularities)","Long retention (1–5 years) for capacity planning","Alerting on PromQL-like rules","Multi-tenant: per-team isolation, quotas"],nfn:["~10M active time series","Sample rate 1 every 15s → ~700k samples/sec avg, ~2M peak","Query QPS ~5k (dashboards + alerts)","P95 query < 1 s for last-hour, < 5 s for 30-day","Retention: raw 15s/7d, 1-min rollup/90d, 1-hr rollup/5y","Availability 99.99% — outages = blind to incidents"],ask:["Single tenant or SaaS multi-tenant?","Pull (Prometheus-style) or push (Datadog-style) collection?","Logs / traces too, or just metrics?"]},
+est:[{m:"Active series",f:"—",v:"~10M",d:"Cardinality kills more systems than throughput"},{m:"Sample rate",f:"every 15s × 10M series",v:"~700k samples/sec avg, ~2M peak",d:"Kafka + ingester fleet sharded by hash(series_id)"},{m:"Storage / day (Gorilla compressed)",f:"700k × 86400 × 1.4 B",v:"~85 GB/day raw",d:"~12× compression vs naïve via Gorilla"},{m:"Total long-term storage",f:"raw 7d + 1-min 90d + 1-hr 5y",v:"~5 TB total",d:"Cheap; S3 for long-term blocks + local SSD for hot 24h"},{m:"Query QPS",f:"dashboards + alerts",v:"~5k",d:"Sharded queriers; PromQL execution; cache plan results 30s"}],
+model:[{name:"Time series identity",fields:[["http_request_duration_seconds{service='orders', method='POST', status='200', region='us-east'}"],["Each unique (metric_name, labels) tuple = one series"],["Inverted label index: label → series_ids (postings list)"]],idx:["query 'service=orders AND status=200' intersects two postings lists"]},{name:"Ingester fleet (sharded by hash(series_id))",fields:[["Hot 2h of data in memory + local RocksDB-style store"],["Replicated to peers (replication factor 2)"],["Kafka WAL as durable buffer; ingester crash recovery replays"]],idx:["periodic flush to S3 (Parquet-style immutable blocks)"]},{name:"S3 blocks + Compactor",fields:[["Parquet-style immutable per-2h blocks; cheap; lazy fetch on cold queries"],["Compactor produces tiered rollups: 15s → 1-min → 1-hour"],["Deletes raw samples after 7 days"]],idx:["query router picks tier by time-range"]}],
+apis:[{m:"POST",p:"/api/v1/write",auth:"tenant token",desc:"Push ingest (push mode)",req:'protobuf: list of (series_id, timestamp, value)',codes:"204 No Content"},{m:"GET",p:"<target>/metrics",auth:"scrape",desc:"Pull mode (Prometheus) — scrapes every 15s",res:'text-format metrics (Prometheus exposition format)',codes:"200 OK"},{m:"GET",p:"/api/v1/query",auth:"user",desc:"Instant query",req:'?query=sum(rate(http_requests_total[5m])) by (service)&time=...',codes:"200 OK"},{m:"GET",p:"/api/v1/query_range",auth:"user",desc:"Range query for dashboards",req:'?query=...&start=...&end=...&step=15s',codes:"200 OK"},{m:"POST",p:"/api/v1/rules",auth:"admin",desc:"Create alerting rule",req:'{ group, rule: { alert, expr, for, labels, annotations } }',codes:"201 Created"}],
+hld:`Targets (services, exporters)
+       │ /metrics scraped (pull) — every 15s
+       │  OR push via /api/v1/write
+       ▼
+   Collectors (scrape OR receive push)
+       │
+       ▼
+   Ingester fleet (sharded by hash(series_id))
+       │
+       ├──► Kafka WAL (durable buffer for crash recovery)
+       │
+       ├──► In-memory block (last 2h) + inverted label index
+       │
+       ▼ periodic flush
+   S3 blocks (Parquet-style, immutable per-2h)
+       │
+       ▼ background compactor
+   Tiered rollups:
+     raw 15s (7d) → 1-min agg (90d) → 1-hr agg (5y)
+       │
+       ▼
+   QUERY PATH:
+   Client → Query Router →
+     route by time-range to right tier
+     fan out to ingesters (recent) + S3 queriers (historical)
+     merge → return JSON
+
+   ALERT ENGINE:
+   periodically evaluates rules via Query path → fires → Notification Svc`,
+hldWhy:[["Sharded ingesters","2M samples/sec sustained; shard by hash(series_id) → series stays on one ingester (locality)"],["Kafka WAL","Ingester crash → replay from last-committed offset; no data loss; replicated factor 2 for continuity"],["Gorilla compression","~1.4 B/sample (12× vs naïve 16 B); the killer feature of dedicated TSDBs"],["S3 for cold blocks","~5 TB total over 5y; S3 standard for last 30d, IA for older → cheap"],["Compactor + tiered rollups","Raw at high resolution short-term, aggregated for long-term; query router picks tier by time-range"],["Cardinality limits per tenant","#1 scaling killer; enforce series quota (e.g. 100k/tenant); reject ingest at limit"]],
+deep:[{name:"Gorilla Compression (the magic)",diag:`From Facebook's 2015 Gorilla paper.
+  Two tricks combined → ~1.4 B per sample (12× compression):
+
+DELTA-OF-DELTA TIMESTAMPS:
+  Sample rates are usually fixed (every 15s).
+  Successive deltas: 15, 15, 15, 15, ...
+  Deltas-of-deltas: 0, 0, 0, 0, ... → encode in 1 bit each!
+
+XOR FLOAT VALUES:
+  Successive sensor values typically share most bits
+  (e.g. 42.31 → 42.34 differs only in the last few bits)
+  Compute XOR(prev, curr); store:
+    - count of leading zeros
+    - count of trailing zeros
+    - the middle "meaningful" bits
+
+RESULT:
+  Typical TSDB workload: ~1.4 B per (timestamp, float64) pair
+  vs 16+ B raw → 12× compression
+  Storage cost drops 90%+ → 5-year retention becomes economical`,pts:["Delta-of-delta = 0 for fixed-rate samples (almost always)","XOR encoding exploits float-value locality between samples","Combined: ~1.4 B/sample — the foundation of modern TSDBs","InfluxDB IOx/3.x uses Parquet which achieves similar via dict + RLE"]},{name:"Cardinality — The #1 Scaling Killer",diag:`CARDINALITY = number of unique (metric_name, label_values) tuples
+  EACH unique tuple = a separate time series with its own storage + index entry
+
+BAD PATTERN:
+  http_requests{user_id="42", ...}
+  → ONE series per user → MILLIONS of series
+  → ingester OOMs, index queries scan forever
+
+DEFENSES:
+  (1) Per-tenant series quota (e.g. 100k); reject ingest beyond limit
+      → Caller sees error → fix their instrumentation
+  
+  (2) Per-label limits (cap distinct values per label name)
+      status_code: ~10 values (OK)
+      user_id: 100k+ values (REJECT — this is a body field, not a label)
+  
+  (3) Cardinality dashboards
+      Show top-10 highest-cardinality metrics per tenant
+      Catches bad instrumentation in PR review
+  
+  (4) Recording rules
+      Pre-aggregate high-cardinality combos into lower-cardinality series
+      service:http_requests:rate5m  (drops the per-user dimension)
+
+GOLDEN RULE:
+  Labels = small enumerations (service, method, status, region)
+  NOT request IDs, user IDs, URLs, etc.`,pts:["Cardinality explosion is the most common TSDB outage","Hard limit per tenant + per-label is the only durable defense","Recording rules pre-aggregate before the explosion happens","PR-time linting (label values must be enums) prevents > 90% of incidents"]}],
+xq:[{q:"Why not Postgres / TimescaleDB?",a:"Postgres falls over at ~10k writes/s sustained; we need 2M samples/s. TimescaleDB (Postgres extension) scales further with hypertables + native compression, but specialised TSDBs achieve 5-10× better compression (Gorilla) and 10× faster range queries (Parquet/columnar). TimescaleDB is the right answer if you need SQL + joins with relational data; pure TSDB wins for metrics-only at this scale.",pb:true},{q:"Why not InfluxDB?",a:"InfluxDB is an equally valid choice; the architecture is nearly identical (TSM engine plays Gorilla's role; Flux/SQL plays PromQL's role). The split is mostly historical: Prometheus dominated service monitoring (pull model + Kubernetes ecosystem); InfluxDB dominated IoT (push model + line protocol). InfluxDB 3.x (IOx) is Parquet-on-S3 + SQL — converging with the modern TSDB stack."},{q:"How does PromQL execute a distributed query?",a:"(1) Query Router parses → AST → planner picks tier(s) by time-range (e.g. last hour → ingesters; last 30 days → S3 queriers via 1-min rollup). (2) Fans out by series_id ranges to shard-owning queriers. (3) Each querier evaluates leaf selectors locally (label index lookup → time-range scan). (4) Router combines via the operator tree (sum, avg, topk). Recent queries cached in Redis with 30s TTL — same dashboard refreshes hit cache."},{q:"How do alerts work?",a:"Alerting engine is a scheduled query evaluator with state. Each rule has: expr (PromQL), for (must be true for X minutes), labels, annotations. Evaluator runs every interval (default 1 min). When expr returns non-empty → pending alert. Flips to firing once pending duration ≥ for (avoids transient flaps). Firing alerts pushed to Notification Svc (PagerDuty / Slack / Webhooks) → deduped + grouped + silenced based on labels."},{q:"What if a single metric has 1 million series (e.g. per-user counters)?",a:"That's cardinality explosion — the system rejects it. Either (a) the team uses recording rules to pre-aggregate before ingest (drop the per-user dimension; aggregate to per-service), or (b) the per-user data goes to an event-analytics system (ClickHouse, BigQuery) instead of a TSDB. Metrics are NOT event logs; they're sampled aggregates. Mis-using a TSDB as an event store is the most common cause of monitoring outages."}]}
 ];
 
 const PROBLEMS = [...P, ...P2, ...P3];
