@@ -118,6 +118,29 @@ body { display: flex; min-height: 100vh; }
 .md-body table th { background: var(--bg3); color: var(--bl); font-weight: 700; }
 .md-body table tr:nth-child(even) td { background: rgba(33,38,45,0.4); }
 
+/* MERMAID DIAGRAMS */
+.md-body .mermaid {
+  background: var(--bg2);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 18px 16px;
+  margin: 16px 0;
+  text-align: center;
+  overflow-x: auto;
+  min-height: 40px;
+}
+.md-body .mermaid svg { max-width: 100%; height: auto !important; }
+.md-body .mermaid-error {
+  background: rgba(247,129,102,0.08); border-left: 4px solid var(--rd);
+  padding: 12px 16px; margin: 14px 0; border-radius: 0 6px 6px 0;
+  font-size: 13px; color: var(--t3);
+}
+.md-body .mermaid-error pre {
+  background: var(--bg3) !important; padding: 10px !important;
+  margin-top: 8px !important; font-size: 12px;
+}
+.md-body .mermaid-error strong { color: var(--rd); }
+
 /* HOME / LANDING */
 .home-hero { padding: 30px 0 16px; }
 .home-hero h1 { font-size: 36px; font-weight: 800; line-height: 1.15; margin-bottom: 14px; }
@@ -280,6 +303,7 @@ body { display: flex; min-height: 100vh; }
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" data-manual></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-java.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-sql.min.js"></script>
@@ -359,6 +383,58 @@ marked.setOptions({
   mangle: false,
   headerIds: false,
 });
+
+// Configure Mermaid (dark theme matching the site)
+if (window.mermaid) {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    securityLevel: 'loose',
+    fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
+    themeVariables: {
+      darkMode: true,
+      background: '#161b22',
+      primaryColor: '#1c2333',
+      primaryBorderColor: '#58a6ff',
+      primaryTextColor: '#e6edf3',
+      secondaryColor: '#21262d',
+      secondaryBorderColor: '#d2a8ff',
+      secondaryTextColor: '#e6edf3',
+      tertiaryColor: '#30363d',
+      tertiaryBorderColor: '#8b949e',
+      tertiaryTextColor: '#e6edf3',
+      lineColor: '#8b949e',
+      textColor: '#e6edf3',
+      mainBkg: '#1c2333',
+      nodeBorder: '#58a6ff',
+      clusterBkg: '#161b22',
+      clusterBorder: '#30363d',
+      labelBoxBkgColor: '#1c2333',
+      labelBoxBorderColor: '#58a6ff',
+      labelTextColor: '#e6edf3',
+      // Sequence diagram
+      actorBkg: '#1c2333',
+      actorBorder: '#58a6ff',
+      actorTextColor: '#e6edf3',
+      actorLineColor: '#8b949e',
+      signalColor: '#e6edf3',
+      signalTextColor: '#e6edf3',
+      noteBkgColor: '#21262d',
+      noteTextColor: '#e6edf3',
+      noteBorderColor: '#d2a8ff',
+      activationBkgColor: '#1c2333',
+      activationBorderColor: '#58a6ff',
+      // State diagram
+      transitionColor: '#8b949e',
+      transitionLabelColor: '#e6edf3',
+      stateLabelColor: '#e6edf3',
+      stateBkg: '#1c2333',
+      altBackground: '#21262d',
+      // Class diagram
+      classText: '#e6edf3',
+    },
+  });
+}
 
 function showLoader(msg = 'Loading…') {
   CONTENT_EL.innerHTML = '<div class="loader"><div class="loader-spinner"></div><div>' + msg + '</div></div>';
@@ -516,13 +592,40 @@ async function renderProblemPage(id) {
   postRender();
 }
 
-function postRender() {
-  // syntax highlight all code blocks
-  if (window.Prism) Prism.highlightAllUnder(CONTENT_EL);
-  // make table content visually polished
-  CONTENT_EL.querySelectorAll('table').forEach(t => {
-    t.classList.add('tbl');
+async function postRender() {
+  // 1. Convert <pre><code class="language-mermaid">...</code></pre> → <div class="mermaid">...</div>
+  //    BEFORE Prism touches them (so they're not double-processed).
+  const mermaidCodes = CONTENT_EL.querySelectorAll('pre > code.language-mermaid');
+  let mermaidIdx = 0;
+  mermaidCodes.forEach((codeEl) => {
+    const src = codeEl.textContent;
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.id = 'mmd-' + Date.now() + '-' + (mermaidIdx++);
+    div.textContent = src;
+    codeEl.parentElement.replaceWith(div);
   });
+
+  // 2. Run Mermaid on every .mermaid block. Mermaid 11.x exposes mermaid.run().
+  if (window.mermaid && CONTENT_EL.querySelectorAll('.mermaid').length > 0) {
+    try {
+      await mermaid.run({ querySelector: '#content .mermaid', suppressErrors: false });
+    } catch (e) {
+      console.warn('Mermaid render error:', e);
+      // Mark un-rendered blocks with a friendly fallback
+      CONTENT_EL.querySelectorAll('.mermaid:not([data-processed])').forEach(el => {
+        const src = el.textContent;
+        el.outerHTML = '<div class="mermaid-error"><strong>⚠ Diagram render failed</strong> — showing source:<pre><code>' +
+          src.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</code></pre></div>';
+      });
+    }
+  }
+
+  // 3. Syntax-highlight remaining code blocks (Java, SQL, Python, etc.)
+  if (window.Prism) Prism.highlightAllUnder(CONTENT_EL);
+
+  // 4. Style markdown tables consistently
+  CONTENT_EL.querySelectorAll('table').forEach(t => t.classList.add('tbl'));
 }
 
 function goto(page) {
