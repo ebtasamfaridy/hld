@@ -118,6 +118,10 @@ body { display: flex; min-height: 100vh; }
 .article { display: none; max-width: 920px; margin: 0 auto; padding: 40px 48px 80px; }
 .article.active { display: block; }
 
+/* Quick Reference page: full-bleed iframe, no article padding */
+#page-quickref { max-width: none; padding: 0; margin: 0; height: 100vh; }
+#page-quickref iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+
 /* ── ARTICLE TYPOGRAPHY ── */
 .art-meta {
   display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
@@ -335,6 +339,11 @@ table.tbl td code { background: var(--bg3); padding: 1px 6px; border-radius: 3px
     <a class="sb-link" data-page="iah-kt"><span class="sb-num">→</span>Key Technologies (intro)</a>
     <a class="sb-link" data-page="iah-cp"><span class="sb-num">→</span>Common Patterns (intro)</a>
     <a class="sb-link" data-page="iah-qb"><span class="sb-num">→</span>Question Breakdowns (intro)</a>
+  </div>
+
+  <div class="sb-group">
+    <div class="sb-group-title">📱 Quick Reference</div>
+    <a class="sb-link" data-page="quickref"><span class="sb-num">→</span>HLD Quick Reference (all 31)</a>
   </div>
 
   <div class="sb-group">
@@ -12855,7 +12864,7 @@ CREATE INDEX idx_country ON title_licensing(country, available_until);</div>
   </ul>
 
   <h2><span class="h-num">5</span>Using the Quick Reference During the Actual Interview</h2>
-  <p>If your interview is open-book, the Quick Reference (separate file in this project) is your single-page-per-problem cheat sheet. Don't read it during the interview — glance at the HLD diagram and the "Why These Choices" section if you stall. The rest of the time, your eyes should be on the whiteboard or the interviewer.</p>
+  <p>If your interview is open-book, the <a href="#quickref" onclick="goto('quickref'); return false;">Quick Reference</a> (in the sidebar — "📱 Quick Reference") is your single-page-per-problem cheat sheet. Don't read it during the interview — glance at the HLD diagram and the "Why These Choices" section if you stall. The rest of the time, your eyes should be on the whiteboard or the interviewer.</p>
 
   <h2><span class="h-num">6</span>What to Do the Day Before</h2>
   <ul>
@@ -17391,6 +17400,10 @@ checksum</pre>
   <p style="margin-top:48px; color:var(--t2); font-size:13px; text-align:center;"><em>End of Problem 31.</em></p>
 </div>
 
+<div id="page-quickref" class="article">
+  <iframe id="quickref-frame" title="HLD Quick Reference" data-src="interview-quick-ref.html" loading="lazy"></iframe>
+</div>
+
 </div><!-- /main -->
 
 <script>
@@ -17401,6 +17414,11 @@ function goto(page, sectionId) {
   if (target) target.classList.add('active');
   const link = document.querySelector('.sb-link[data-page="' + page + '"]');
   if (link) link.classList.add('active');
+  // Lazy-load the quick-reference iframe on first activation
+  if (page === 'quickref') {
+    const fr = document.getElementById('quickref-frame');
+    if (fr && !fr.src && fr.dataset.src) fr.src = fr.dataset.src;
+  }
   // If we have a section anchor, scroll to it; otherwise top
   if (sectionId) {
     setTimeout(() => {

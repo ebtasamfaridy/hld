@@ -27,16 +27,26 @@
   p  { font-size: 14px; color: var(--text2); margin-bottom: 36px; }
 
   .cards {
-    display: flex; flex-direction: column; gap: 16px;
-    width: 100%; max-width: 460px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%; max-width: 880px;
+    align-items: stretch;
   }
   a.card {
-    display: block; text-decoration: none;
+    display: flex; flex-direction: column;
+    text-decoration: none;
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 24px 22px;
     transition: border-color 0.2s, transform 0.15s;
+    height: 100%;
+  }
+  a.card .badge { margin-top: auto; align-self: flex-start; }
+  @media (max-width: 960px) {
+    .cards { grid-template-columns: 1fr; max-width: 460px; }
+    a.card .badge { margin-top: 12px; }
   }
   a.card:hover { border-color: var(--blue); transform: translateY(-2px); }
   a.card:active { transform: translateY(0); }
@@ -73,15 +83,8 @@
   <a class="card" href="study-guide-detailed.html">
     <span class="icon">📚</span>
     <h2>HLD — Detailed Study Guide</h2>
-    <div class="desc">Long-form, end-to-end articles for 31 problems plus Fundamentals, Cheat Sheet, Interview Framework and Cross-Question Patterns. Each problem covers context, requirements with reasoning, capacity math, data model, APIs, architecture, deep dives, failure modes, scaling path and pushback answers. Built for thorough study, not interview-time skimming.</div>
-    <span class="badge">Laptop · Long-Form Reading</span>
-  </a>
-
-  <a class="card green-card" href="interview-quick-ref.html">
-    <span class="icon">📱</span>
-    <h2>HLD — Interview Quick Reference</h2>
-    <div class="desc">A condensed, open-book subset of the Detailed Study Guide. Concise flow diagrams, key decisions and pushback answers for every problem. No horizontal scroll. Built for your phone screen during the interview.</div>
-    <span class="badge">Mobile · Interview Mode</span>
+    <div class="desc">Long-form, end-to-end articles for 31 problems plus Fundamentals, Cheat Sheet, Interview Framework and Cross-Question Patterns. Each problem covers context, requirements with reasoning, capacity math, data model, APIs, architecture, deep dives, failure modes, scaling path and pushback answers. Includes the mobile-friendly Quick Reference (open-book interview mode) embedded in the sidebar.</div>
+    <span class="badge">Laptop · Long-Form + Quick Ref</span>
   </a>
 
   <a class="card purple-card" href="lld-guide.html">

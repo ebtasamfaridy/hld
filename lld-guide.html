@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Low-Level Design — Mastery Guide</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
-<link rel="icon" type="image/png" href="data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E📚%3C/text%3E%3C/svg%3E"/>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E📚%3C/text%3E%3C/svg%3E"/>
 <link rel="apple-touch-icon" href="favicon.svg"/>
 <meta name="theme-color" content="#0d1117"/>
 <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet"/>
@@ -69,6 +69,15 @@ body { display: flex; min-height: 100vh; }
 .sb-search-kbd { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--t2); font-size: 10px; font-family: monospace; padding: 2px 5px; background: var(--bg3); border-radius: 3px; border: 1px solid var(--bd); pointer-events: none; }
 .sb-link.hidden, .sb-group.hidden { display: none; }
 .sb-group-title.hidden-title { display: none; }
+.sb-no-results { padding: 14px 20px; font-size: 12px; color: var(--t2); font-style: italic; display: none; }
+.sb-no-results.visible { display: block; }
+
+/* MOBILE BACKDROP */
+#sb-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 90;
+}
+#sb-backdrop.open { display: block; }
 
 /* MAIN CONTENT */
 #main { flex: 1; min-width: 0; }
@@ -213,94 +222,97 @@ body { display: flex; min-height: 100vh; }
 </style>
 </head>
 <body>
-<button id="sb-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+<button id="sb-toggle" type="button" aria-label="Toggle navigation menu" aria-controls="sidebar">☰</button>
+<div id="sb-backdrop" aria-hidden="true"></div>
 
-<div id="sidebar">
+<nav id="sidebar" aria-label="Guide navigation">
   <div class="sb-logo">💻 LLD Mastery</div>
 
   <div class="sb-search">
     <div class="sb-search-wrap">
-      <input id="sb-search-input" type="search" placeholder="Search…" autocomplete="off" spellcheck="false"/>
-      <span class="sb-search-icon">🔍</span>
-      <span class="sb-search-kbd">⌘K</span>
+      <input id="sb-search-input" type="search" placeholder="Search…" autocomplete="off" spellcheck="false" aria-label="Search guide sections"/>
+      <span class="sb-search-icon" aria-hidden="true">🔍</span>
+      <span class="sb-search-kbd" id="sb-search-kbd" aria-hidden="true">⌘K</span>
     </div>
   </div>
+
+  <div class="sb-no-results" id="sb-no-results">No matches.</div>
 
   <div class="sb-groups-wrap">
     <div class="sb-group">
       <div class="sb-group-title">Start</div>
-      <a class="sb-link active" data-page="home"><span class="sb-num">🏠</span>Home</a>
+      <a class="sb-link active" href="#home" data-page="home"><span class="sb-num">🏠</span>Home</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🎯 The LLD Framework</div>
-      <a class="sb-link" data-page="fw-01"><span class="sb-num">01</span>Requirements Gathering</a>
-      <a class="sb-link" data-page="fw-02"><span class="sb-num">02</span>Capacity Estimation</a>
-      <a class="sb-link" data-page="fw-03"><span class="sb-num">03</span>Structured LLD Framework</a>
-      <a class="sb-link" data-page="fw-04"><span class="sb-num">04</span>SOLID Principles</a>
-      <a class="sb-link" data-page="fw-05"><span class="sb-num">05</span>Design Patterns</a>
-      <a class="sb-link" data-page="fw-06"><span class="sb-num">06</span>Concurrency</a>
-      <a class="sb-link" data-page="fw-07"><span class="sb-num">07</span>API Design</a>
-      <a class="sb-link" data-page="fw-08"><span class="sb-num">08</span>Database Design</a>
-      <a class="sb-link" data-page="fw-09"><span class="sb-num">09</span>UML Tutorial</a>
-      <a class="sb-link" data-page="fw-10"><span class="sb-num">10</span>LLD Interview Framework</a>
-      <a class="sb-link" data-page="fw-11"><span class="sb-num">11</span>Machine Coding Framework</a>
+      <a class="sb-link" href="#fw-01" data-page="fw-01"><span class="sb-num">01</span>Requirements Gathering</a>
+      <a class="sb-link" href="#fw-02" data-page="fw-02"><span class="sb-num">02</span>Capacity Estimation</a>
+      <a class="sb-link" href="#fw-03" data-page="fw-03"><span class="sb-num">03</span>Structured LLD Framework</a>
+      <a class="sb-link" href="#fw-04" data-page="fw-04"><span class="sb-num">04</span>SOLID Principles</a>
+      <a class="sb-link" href="#fw-05" data-page="fw-05"><span class="sb-num">05</span>Design Patterns</a>
+      <a class="sb-link" href="#fw-06" data-page="fw-06"><span class="sb-num">06</span>Concurrency</a>
+      <a class="sb-link" href="#fw-07" data-page="fw-07"><span class="sb-num">07</span>API Design</a>
+      <a class="sb-link" href="#fw-08" data-page="fw-08"><span class="sb-num">08</span>Database Design</a>
+      <a class="sb-link" href="#fw-09" data-page="fw-09"><span class="sb-num">09</span>UML Tutorial</a>
+      <a class="sb-link" href="#fw-10" data-page="fw-10"><span class="sb-num">10</span>LLD Interview Framework</a>
+      <a class="sb-link" href="#fw-11" data-page="fw-11"><span class="sb-num">11</span>Machine Coding Framework</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🍔 Domain-Rich Systems</div>
-      <a class="sb-link" data-page="p01"><span class="sb-num">L01</span>Food Delivery</a>
-      <a class="sb-link" data-page="p02"><span class="sb-num">L02</span>Ride Booking</a>
-      <a class="sb-link" data-page="p03"><span class="sb-num">L03</span>Hotel Booking</a>
-      <a class="sb-link" data-page="p04"><span class="sb-num">L04</span>Library Management</a>
-      <a class="sb-link" data-page="p05"><span class="sb-num">L05</span>Splitwise</a>
-      <a class="sb-link" data-page="p06"><span class="sb-num">L06</span>Streak System</a>
+      <a class="sb-link" href="#p01" data-page="p01"><span class="sb-num">L01</span>Food Delivery</a>
+      <a class="sb-link" href="#p02" data-page="p02"><span class="sb-num">L02</span>Ride Booking</a>
+      <a class="sb-link" href="#p03" data-page="p03"><span class="sb-num">L03</span>Hotel Booking</a>
+      <a class="sb-link" href="#p04" data-page="p04"><span class="sb-num">L04</span>Library Management</a>
+      <a class="sb-link" href="#p05" data-page="p05"><span class="sb-num">L05</span>Splitwise</a>
+      <a class="sb-link" href="#p06" data-page="p06"><span class="sb-num">L06</span>Streak System</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🎲 Object-Modeling Systems</div>
-      <a class="sb-link" data-page="p07"><span class="sb-num">L07</span>Snake &amp; Ladder</a>
-      <a class="sb-link" data-page="p08"><span class="sb-num">L08</span>Tic Tac Toe</a>
-      <a class="sb-link" data-page="p09"><span class="sb-num">L09</span>Vending Machine</a>
-      <a class="sb-link" data-page="p10"><span class="sb-num">L10</span>Elevator</a>
-      <a class="sb-link" data-page="p11"><span class="sb-num">L11</span>Parking Lot</a>
+      <a class="sb-link" href="#p07" data-page="p07"><span class="sb-num">L07</span>Snake &amp; Ladder</a>
+      <a class="sb-link" href="#p08" data-page="p08"><span class="sb-num">L08</span>Tic Tac Toe</a>
+      <a class="sb-link" href="#p09" data-page="p09"><span class="sb-num">L09</span>Vending Machine</a>
+      <a class="sb-link" href="#p10" data-page="p10"><span class="sb-num">L10</span>Elevator</a>
+      <a class="sb-link" href="#p11" data-page="p11"><span class="sb-num">L11</span>Parking Lot</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🔧 Infra-Flavoured</div>
-      <a class="sb-link" data-page="p12"><span class="sb-num">L12</span>Rate Limiter</a>
-      <a class="sb-link" data-page="p13"><span class="sb-num">L13</span>BookMyShow</a>
-      <a class="sb-link" data-page="p14"><span class="sb-num">L14</span>Pub / Sub System</a>
-      <a class="sb-link" data-page="p15"><span class="sb-num">L15</span>LRU Cache</a>
+      <a class="sb-link" href="#p12" data-page="p12"><span class="sb-num">L12</span>Rate Limiter</a>
+      <a class="sb-link" href="#p13" data-page="p13"><span class="sb-num">L13</span>BookMyShow</a>
+      <a class="sb-link" href="#p14" data-page="p14"><span class="sb-num">L14</span>Pub / Sub System</a>
+      <a class="sb-link" href="#p15" data-page="p15"><span class="sb-num">L15</span>LRU Cache</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🛠️ Framework / Library</div>
-      <a class="sb-link" data-page="p16"><span class="sb-num">L16</span>Logger Framework</a>
-      <a class="sb-link" data-page="p17"><span class="sb-num">L17</span>Feature Flag System</a>
-      <a class="sb-link" data-page="p18"><span class="sb-num">L18</span>Task Scheduler</a>
-      <a class="sb-link" data-page="p19"><span class="sb-num">L19</span>Circuit Breaker</a>
-      <a class="sb-link" data-page="p20"><span class="sb-num">L20</span>Authorization System</a>
+      <a class="sb-link" href="#p16" data-page="p16"><span class="sb-num">L16</span>Logger Framework</a>
+      <a class="sb-link" href="#p17" data-page="p17"><span class="sb-num">L17</span>Feature Flag System</a>
+      <a class="sb-link" href="#p18" data-page="p18"><span class="sb-num">L18</span>Task Scheduler</a>
+      <a class="sb-link" href="#p19" data-page="p19"><span class="sb-num">L19</span>Circuit Breaker</a>
+      <a class="sb-link" href="#p20" data-page="p20"><span class="sb-num">L20</span>Authorization System</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">🛒 Marketplace / Commerce</div>
-      <a class="sb-link" data-page="p21"><span class="sb-num">L21</span>E-Commerce</a>
-      <a class="sb-link" data-page="p22"><span class="sb-num">L22</span>Car Rental</a>
+      <a class="sb-link" href="#p21" data-page="p21"><span class="sb-num">L21</span>E-Commerce</a>
+      <a class="sb-link" href="#p22" data-page="p22"><span class="sb-num">L22</span>Car Rental</a>
     </div>
 
     <div class="sb-group">
       <div class="sb-group-title">More</div>
       <a class="sb-link" href="index.html" data-external="true"><span class="sb-num">←</span>Back to Home</a>
       <a class="sb-link" href="study-guide-detailed.html" data-external="true"><span class="sb-num">📘</span>HLD Detailed Guide</a>
-      <a class="sb-link" href="interview-quick-ref.html" data-external="true"><span class="sb-num">📱</span>HLD Quick Reference</a>
+      <a class="sb-link" href="study-guide-detailed.html#quickref" data-external="true"><span class="sb-num">📱</span>HLD Quick Reference</a>
     </div>
   </div>
-</div>
+</nav>
 
-<div id="main">
+<main id="main">
   <div class="article" id="content"></div>
-</div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
@@ -376,12 +388,10 @@ const PROBLEM_FILES = [
 const CONTENT_EL = document.getElementById('content');
 const PAGE_CACHE = {};
 
-// Configure marked
+// Configure marked (v12+ API)
 marked.setOptions({
   breaks: false,
   gfm: true,
-  mangle: false,
-  headerIds: false,
 });
 
 // Configure Mermaid (dark theme matching the site)
@@ -471,43 +481,43 @@ function renderHome() {
 
       <h2>🎯 Framework — Read This First</h2>
       <div class="cards-grid">
-        <a class="card-item" onclick="goto('fw-01')"><div class="ci-num">01</div><h3>Requirements Gathering</h3><p>FR / NFR / scope clarifications</p></a>
-        <a class="card-item" onclick="goto('fw-02')"><div class="ci-num">02</div><h3>Capacity Estimation</h3><p>DAU → RPS → storage → bandwidth</p></a>
-        <a class="card-item" onclick="goto('fw-03')"><div class="ci-num">03</div><h3>Structured LLD Framework</h3><p>The 12-step playbook</p></a>
-        <a class="card-item" onclick="goto('fw-04')"><div class="ci-num">04</div><h3>SOLID Principles</h3><p>SRP / OCP / LSP / ISP / DIP</p></a>
-        <a class="card-item" onclick="goto('fw-05')"><div class="ci-num">05</div><h3>Design Patterns</h3><p>Strategy, State, Factory, Observer…</p></a>
-        <a class="card-item" onclick="goto('fw-06')"><div class="ci-num">06</div><h3>Concurrency</h3><p>Races, idempotency, locks, sagas</p></a>
-        <a class="card-item" onclick="goto('fw-07')"><div class="ci-num">07</div><h3>API Design</h3><p>REST, idempotency, pagination</p></a>
-        <a class="card-item" onclick="goto('fw-08')"><div class="ci-num">08</div><h3>Database Design</h3><p>ER, indexes, sharding, migrations</p></a>
-        <a class="card-item" onclick="goto('fw-09')"><div class="ci-num">09</div><h3>UML Tutorial</h3><p>Class, sequence, state, package</p></a>
-        <a class="card-item" onclick="goto('fw-10')"><div class="ci-num">10</div><h3>LLD Interview Framework</h3><p>How to communicate in interviews</p></a>
-        <a class="card-item" onclick="goto('fw-11')"><div class="ci-num">11</div><h3>Machine Coding Framework</h3><p>Checklists &amp; reusable blueprint</p></a>
+        <a class="card-item" href="#fw-01" data-page="fw-01"><div class="ci-num">01</div><h3>Requirements Gathering</h3><p>FR / NFR / scope clarifications</p></a>
+        <a class="card-item" href="#fw-02" data-page="fw-02"><div class="ci-num">02</div><h3>Capacity Estimation</h3><p>DAU → RPS → storage → bandwidth</p></a>
+        <a class="card-item" href="#fw-03" data-page="fw-03"><div class="ci-num">03</div><h3>Structured LLD Framework</h3><p>The 12-step playbook</p></a>
+        <a class="card-item" href="#fw-04" data-page="fw-04"><div class="ci-num">04</div><h3>SOLID Principles</h3><p>SRP / OCP / LSP / ISP / DIP</p></a>
+        <a class="card-item" href="#fw-05" data-page="fw-05"><div class="ci-num">05</div><h3>Design Patterns</h3><p>Strategy, State, Factory, Observer…</p></a>
+        <a class="card-item" href="#fw-06" data-page="fw-06"><div class="ci-num">06</div><h3>Concurrency</h3><p>Races, idempotency, locks, sagas</p></a>
+        <a class="card-item" href="#fw-07" data-page="fw-07"><div class="ci-num">07</div><h3>API Design</h3><p>REST, idempotency, pagination</p></a>
+        <a class="card-item" href="#fw-08" data-page="fw-08"><div class="ci-num">08</div><h3>Database Design</h3><p>ER, indexes, sharding, migrations</p></a>
+        <a class="card-item" href="#fw-09" data-page="fw-09"><div class="ci-num">09</div><h3>UML Tutorial</h3><p>Class, sequence, state, package</p></a>
+        <a class="card-item" href="#fw-10" data-page="fw-10"><div class="ci-num">10</div><h3>LLD Interview Framework</h3><p>How to communicate in interviews</p></a>
+        <a class="card-item" href="#fw-11" data-page="fw-11"><div class="ci-num">11</div><h3>Machine Coding Framework</h3><p>Checklists &amp; reusable blueprint</p></a>
       </div>
 
       <h2>💻 22 Systems</h2>
       <div class="cards-grid">
-        <a class="card-item" onclick="goto('p01')"><div class="ci-num">L01</div><h3>Food Delivery</h3><p>State machine, dispatch, geo, batching</p></a>
-        <a class="card-item" onclick="goto('p02')"><div class="ci-num">L02</div><h3>Ride Booking</h3><p>Matching, surge, ride lifecycle</p></a>
-        <a class="card-item" onclick="goto('p03')"><div class="ci-num">L03</div><h3>Hotel Booking</h3><p>Calendar inventory, pricing</p></a>
-        <a class="card-item" onclick="goto('p04')"><div class="ci-num">L04</div><h3>Library Management</h3><p>Book vs Copy, reservations</p></a>
-        <a class="card-item" onclick="goto('p05')"><div class="ci-num">L05</div><h3>Splitwise</h3><p>Expense split, debt simplification</p></a>
-        <a class="card-item" onclick="goto('p06')"><div class="ci-num">L06</div><h3>Streak System</h3><p>Engagement, timezone, freezes</p></a>
-        <a class="card-item" onclick="goto('p07')"><div class="ci-num">L07</div><h3>Snake &amp; Ladder</h3><p>Turn-based, pluggable rules</p></a>
-        <a class="card-item" onclick="goto('p08')"><div class="ci-num">L08</div><h3>Tic Tac Toe</h3><p>N×N board, K-in-row, minimax</p></a>
-        <a class="card-item" onclick="goto('p09')"><div class="ci-num">L09</div><h3>Vending Machine</h3><p>FSM, payment, change-making</p></a>
-        <a class="card-item" onclick="goto('p10')"><div class="ci-num">L10</div><h3>Elevator</h3><p>Multi-car scheduling, LOOK/SCAN</p></a>
-        <a class="card-item" onclick="goto('p11')"><div class="ci-num">L11</div><h3>Parking Lot</h3><p>Atomic spot allocation</p></a>
-        <a class="card-item" onclick="goto('p12')"><div class="ci-num">L12</div><h3>Rate Limiter</h3><p>Token bucket, sliding window</p></a>
-        <a class="card-item" onclick="goto('p13')"><div class="ci-num">L13</div><h3>BookMyShow</h3><p>Hold → Confirm → Pay; SETNX</p></a>
-        <a class="card-item" onclick="goto('p14')"><div class="ci-num">L14</div><h3>Pub / Sub</h3><p>Kafka-like; partitions, ISR</p></a>
-        <a class="card-item" onclick="goto('p15')"><div class="ci-num">L15</div><h3>LRU Cache</h3><p>HashMap+DLL, sharded, distributed</p></a>
-        <a class="card-item" onclick="goto('p16')"><div class="ci-num">L16</div><h3>Logger Framework</h3><p>Hierarchical, async, MDC, layouts</p></a>
-        <a class="card-item" onclick="goto('p17')"><div class="ci-num">L17</div><h3>Feature Flag System</h3><p>Sticky bucketing, push updates</p></a>
-        <a class="card-item" onclick="goto('p18')"><div class="ci-num">L18</div><h3>Task Scheduler</h3><p>SKIP LOCKED, retries, DLQ</p></a>
-        <a class="card-item" onclick="goto('p19')"><div class="ci-num">L19</div><h3>Circuit Breaker</h3><p>Sliding window, HALF_OPEN</p></a>
-        <a class="card-item" onclick="goto('p20')"><div class="ci-num">L20</div><h3>Authorization</h3><p>RBAC + ABAC + ReBAC; DENY-wins</p></a>
-        <a class="card-item" onclick="goto('p21')"><div class="ci-num">L21</div><h3>E-Commerce</h3><p>Multi-seller, order saga</p></a>
-        <a class="card-item" onclick="goto('p22')"><div class="ci-num">L22</div><h3>Car Rental</h3><p>Time-slot inventory, reserve flow</p></a>
+        <a class="card-item" href="#p01" data-page="p01"><div class="ci-num">L01</div><h3>Food Delivery</h3><p>State machine, dispatch, geo, batching</p></a>
+        <a class="card-item" href="#p02" data-page="p02"><div class="ci-num">L02</div><h3>Ride Booking</h3><p>Matching, surge, ride lifecycle</p></a>
+        <a class="card-item" href="#p03" data-page="p03"><div class="ci-num">L03</div><h3>Hotel Booking</h3><p>Calendar inventory, pricing</p></a>
+        <a class="card-item" href="#p04" data-page="p04"><div class="ci-num">L04</div><h3>Library Management</h3><p>Book vs Copy, reservations</p></a>
+        <a class="card-item" href="#p05" data-page="p05"><div class="ci-num">L05</div><h3>Splitwise</h3><p>Expense split, debt simplification</p></a>
+        <a class="card-item" href="#p06" data-page="p06"><div class="ci-num">L06</div><h3>Streak System</h3><p>Engagement, timezone, freezes</p></a>
+        <a class="card-item" href="#p07" data-page="p07"><div class="ci-num">L07</div><h3>Snake &amp; Ladder</h3><p>Turn-based, pluggable rules</p></a>
+        <a class="card-item" href="#p08" data-page="p08"><div class="ci-num">L08</div><h3>Tic Tac Toe</h3><p>N×N board, K-in-row, minimax</p></a>
+        <a class="card-item" href="#p09" data-page="p09"><div class="ci-num">L09</div><h3>Vending Machine</h3><p>FSM, payment, change-making</p></a>
+        <a class="card-item" href="#p10" data-page="p10"><div class="ci-num">L10</div><h3>Elevator</h3><p>Multi-car scheduling, LOOK/SCAN</p></a>
+        <a class="card-item" href="#p11" data-page="p11"><div class="ci-num">L11</div><h3>Parking Lot</h3><p>Atomic spot allocation</p></a>
+        <a class="card-item" href="#p12" data-page="p12"><div class="ci-num">L12</div><h3>Rate Limiter</h3><p>Token bucket, sliding window</p></a>
+        <a class="card-item" href="#p13" data-page="p13"><div class="ci-num">L13</div><h3>BookMyShow</h3><p>Hold → Confirm → Pay; SETNX</p></a>
+        <a class="card-item" href="#p14" data-page="p14"><div class="ci-num">L14</div><h3>Pub / Sub</h3><p>Kafka-like; partitions, ISR</p></a>
+        <a class="card-item" href="#p15" data-page="p15"><div class="ci-num">L15</div><h3>LRU Cache</h3><p>HashMap+DLL, sharded, distributed</p></a>
+        <a class="card-item" href="#p16" data-page="p16"><div class="ci-num">L16</div><h3>Logger Framework</h3><p>Hierarchical, async, MDC, layouts</p></a>
+        <a class="card-item" href="#p17" data-page="p17"><div class="ci-num">L17</div><h3>Feature Flag System</h3><p>Sticky bucketing, push updates</p></a>
+        <a class="card-item" href="#p18" data-page="p18"><div class="ci-num">L18</div><h3>Task Scheduler</h3><p>SKIP LOCKED, retries, DLQ</p></a>
+        <a class="card-item" href="#p19" data-page="p19"><div class="ci-num">L19</div><h3>Circuit Breaker</h3><p>Sliding window, HALF_OPEN</p></a>
+        <a class="card-item" href="#p20" data-page="p20"><div class="ci-num">L20</div><h3>Authorization</h3><p>RBAC + ABAC + ReBAC; DENY-wins</p></a>
+        <a class="card-item" href="#p21" data-page="p21"><div class="ci-num">L21</div><h3>E-Commerce</h3><p>Multi-seller, order saga</p></a>
+        <a class="card-item" href="#p22" data-page="p22"><div class="ci-num">L22</div><h3>Car Rental</h3><p>Time-slot inventory, reserve flow</p></a>
       </div>
 
       <h2>🔑 What Makes This Different</h2>
@@ -522,11 +532,11 @@ function renderHome() {
   `;
 }
 
-function makeToc(html) {
+function makeToc(parsedHtml) {
   const tmp = document.createElement('div');
-  tmp.innerHTML = html;
+  tmp.innerHTML = parsedHtml;
   const h2s = tmp.querySelectorAll('h2');
-  if (h2s.length < 3) return '';
+  if (h2s.length < 3) return null;
   let toc = '<div class="toc"><div class="toc-title">In this article</div><ol>';
   h2s.forEach((h, i) => {
     const id = 'sec-' + i;
@@ -544,9 +554,10 @@ async function renderFrameworkPage(id) {
   if (PAGE_CACHE[id]) { CONTENT_EL.innerHTML = PAGE_CACHE[id]; postRender(); return; }
   const md = await fetchMarkdown(FRAMEWORK_BASE + meta.file);
   if (!md) return showError('Could not load <code>' + meta.file + '</code>');
-  let html = '<div class="md-body">' + marked.parse(md) + '</div>';
-  const tocBundle = makeToc('<div class="md-body">' + marked.parse(md) + '</div>');
-  if (tocBundle) html = '<div class="md-body">' + tocBundle.toc + tocBundle.html + '</div>';
+  const parsed = marked.parse(md);
+  const tocBundle = makeToc(parsed);
+  const inner = tocBundle ? (tocBundle.toc + tocBundle.html) : parsed;
+  const html = '<div class="md-body">' + inner + '</div>';
   PAGE_CACHE[id] = html;
   CONTENT_EL.innerHTML = html;
   postRender();
@@ -567,24 +578,27 @@ async function renderProblemPage(id) {
     })
   );
 
-  // build TOC
   const presentSections = results.filter(r => r !== null);
-  let toc = `<div class="toc"><div class="toc-title">In this problem</div><ol>`;
-  presentSections.forEach((r, i) => {
-    toc += `<li><a href="#sec-${i}">${r.section}</a></li>`;
-  });
-  // Add machine-coding skeleton link
-  toc += `<li><a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank">Machine-Coding Skeleton (Java) ↗</a></li>`;
-  toc += `</ol></div>`;
+  let body = `<h1>${meta.title}</h1>`;
 
-  let body = `<h1>${meta.title}</h1>` + toc;
-  presentSections.forEach((r, i) => {
-    body += `<div class="md-section-anchor" id="sec-${i}">`;
-    body += marked.parse(r.md);
-    body += `</div>`;
-  });
-  // skeleton callout
-  body += `<div class="skeleton-note"><strong>📦 Machine-Coding Skeleton:</strong> Production-grade Java code lives in <code>lld-content/${meta.folder}/12_machine_coding_skeleton/</code> — browse it on <a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank">GitHub Pages directory listing</a> or in the source repo.</div>`;
+  if (presentSections.length === 0) {
+    body += `<blockquote><strong>Write-up coming soon.</strong> The Markdown deep-dive for this problem isn't published yet — only the machine-coding skeleton is available below.</blockquote>`;
+  } else {
+    let toc = `<div class="toc"><div class="toc-title">In this problem</div><ol>`;
+    presentSections.forEach((r, i) => {
+      toc += `<li><a href="#sec-${i}">${r.section}</a></li>`;
+    });
+    toc += `<li><a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank" rel="noopener">Machine-Coding Skeleton (Java) ↗</a></li>`;
+    toc += `</ol></div>`;
+    body += toc;
+    presentSections.forEach((r, i) => {
+      body += `<div class="md-section-anchor" id="sec-${i}">`;
+      body += marked.parse(r.md);
+      body += `</div>`;
+    });
+  }
+
+  body += `<div class="skeleton-note"><strong>📦 Machine-Coding Skeleton:</strong> Production-grade Java code lives in <code>lld-content/${meta.folder}/12_machine_coding_skeleton/</code> — browse it via the <a href="lld-content/${meta.folder}/12_machine_coding_skeleton/" target="_blank" rel="noopener">directory listing</a> or in the source repo.</div>`;
 
   const html = '<div class="md-body">' + body + '</div>';
   PAGE_CACHE[id] = html;
@@ -628,50 +642,98 @@ async function postRender() {
   CONTENT_EL.querySelectorAll('table').forEach(t => t.classList.add('tbl'));
 }
 
-function goto(page) {
-  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
-  const link = document.querySelector('.sb-link[data-page="' + page + '"]');
-  if (link) link.classList.add('active');
-  window.scrollTo(0, 0);
-  document.getElementById('sidebar').classList.remove('open');
-  history.replaceState(null, '', '#' + page);
-  if (page === 'home') { renderHome(); return; }
+const sidebarEl = document.getElementById('sidebar');
+const backdropEl = document.getElementById('sb-backdrop');
+const toggleBtn  = document.getElementById('sb-toggle');
+
+function closeSidebar() {
+  sidebarEl.classList.remove('open');
+  backdropEl.classList.remove('open');
+}
+function openSidebar() {
+  sidebarEl.classList.add('open');
+  backdropEl.classList.add('open');
+}
+toggleBtn.addEventListener('click', () => {
+  sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+backdropEl.addEventListener('click', closeSidebar);
+
+function renderPage(page) {
+  if (page === 'home') return renderHome();
   if (FRAMEWORK_PAGES[page]) return renderFrameworkPage(page);
   if (PROBLEMS[page]) return renderProblemPage(page);
   showError('Unknown page: ' + page);
 }
 
-// wire up sidebar
-document.querySelectorAll('.sb-link').forEach(link => {
-  if (link.dataset.external) return; // let normal href work
-  link.addEventListener('click', (e) => {
-    e.preventDefault();
-    goto(link.dataset.page);
-  });
+function goto(page, { push = true } = {}) {
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  const link = document.querySelector('.sb-link[data-page="' + page + '"]');
+  if (link) link.classList.add('active');
+  window.scrollTo(0, 0);
+  closeSidebar();
+  const newHash = '#' + page;
+  if (push && window.location.hash !== newHash) {
+    history.pushState({ page }, '', newHash);
+  } else if (!push) {
+    history.replaceState({ page }, '', newHash);
+  }
+  renderPage(page);
+}
+
+// Single delegated handler for any in-app page link (sidebar + landing cards)
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('[data-page]');
+  if (!link || link.dataset.external) return;
+  // Allow modifier-clicks (ctrl/cmd/shift/middle) to behave as native links
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+  e.preventDefault();
+  goto(link.dataset.page);
+});
+
+// Back/forward button support
+window.addEventListener('popstate', (e) => {
+  const page = (e.state && e.state.page) || window.location.hash.slice(1) || 'home';
+  goto(page, { push: false });
 });
 
 // search — filters sidebar entries by text
-const searchInput = document.getElementById('sb-search-input');
+const searchInput   = document.getElementById('sb-search-input');
+const noResultsEl   = document.getElementById('sb-no-results');
 let searchTimer;
+function applySearch(q) {
+  let total = 0, matched = 0;
+  document.querySelectorAll('.sb-link').forEach(link => {
+    if (!link.dataset.page && !link.dataset.external) return;
+    total++;
+    const t = link.textContent.toLowerCase();
+    const hide = q.length > 0 && !t.includes(q);
+    link.classList.toggle('hidden', hide);
+    if (!hide) matched++;
+  });
+  document.querySelectorAll('.sb-group').forEach(g => {
+    const visible = g.querySelectorAll('.sb-link:not(.hidden)');
+    g.classList.toggle('hidden', q.length > 0 && visible.length === 0);
+  });
+  noResultsEl.classList.toggle('visible', q.length > 0 && matched === 0);
+}
 searchInput.addEventListener('input', (e) => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    const q = e.target.value.trim().toLowerCase();
-    document.querySelectorAll('.sb-link').forEach(link => {
-      if (!link.dataset.page && !link.dataset.external) return;
-      const t = link.textContent.toLowerCase();
-      link.classList.toggle('hidden', q.length > 0 && !t.includes(q));
-    });
-    // hide groups whose all links are hidden
-    document.querySelectorAll('.sb-group').forEach(g => {
-      const visible = g.querySelectorAll('.sb-link:not(.hidden)');
-      g.classList.toggle('hidden', q.length > 0 && visible.length === 0);
-    });
-  }, 60);
+  searchTimer = setTimeout(() => applySearch(e.target.value.trim().toLowerCase()), 60);
 });
 searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { searchInput.value = ''; searchInput.dispatchEvent(new Event('input')); searchInput.blur(); }
+  if (e.key === 'Escape') {
+    searchInput.value = '';
+    applySearch('');
+    searchInput.blur();
+  }
 });
+
+// Cmd/Ctrl-K to focus search; show the right hint per platform
+const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+const kbdEl = document.getElementById('sb-search-kbd');
+if (kbdEl) kbdEl.textContent = isMac ? '⌘K' : 'Ctrl+K';
+
 document.addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault(); searchInput.focus(); searchInput.select();
@@ -680,11 +742,9 @@ document.addEventListener('keydown', (e) => {
 
 // initial render based on hash
 const initialHash = window.location.hash.slice(1);
-if (initialHash && (initialHash === 'home' || FRAMEWORK_PAGES[initialHash] || PROBLEMS[initialHash])) {
-  goto(initialHash);
-} else {
-  renderHome();
-}
+const initialPage = (initialHash && (initialHash === 'home' || FRAMEWORK_PAGES[initialHash] || PROBLEMS[initialHash]))
+  ? initialHash : 'home';
+goto(initialPage, { push: false });
 </script>
 </body>
 </html>
